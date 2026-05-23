@@ -31,3 +31,37 @@ html, body {
 }
 .animate-fadein { animation: fadein 0.2s ease-out both; }
 .animate-popin  { animation: popin 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+
+/* Rain — single drop falls from top of its container to past the bottom. */
+@keyframes rainfall {
+  0%   { transform: translate3d(0, -10vh, 0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translate3d(2vh, 110vh, 0); opacity: 0; }
+}
+
+/* Lightning flash — double-pulse, briefly washing the scene in white. */
+@keyframes lightning-flash {
+  0%   { background: rgba(255, 255, 255, 0); }
+  4%   { background: rgba(255, 255, 255, 0.55); }
+  12%  { background: rgba(255, 255, 255, 0.10); }
+  18%  { background: rgba(255, 255, 255, 0.70); }
+  26%  { background: rgba(255, 255, 255, 0.05); }
+  100% { background: rgba(255, 255, 255, 0); }
+}
+.animate-lightning {
+  animation: lightning-flash 0.9s ease-out both;
+}
+
+/* Lightning bolt — quick scale + opacity pulse */
+@keyframes bolt-flash {
+  0%   { opacity: 0; transform: scaleY(0.6); }
+  6%   { opacity: 1; transform: scaleY(1); }
+  20%  { opacity: 1; }
+  60%  { opacity: 0.2; }
+  100% { opacity: 0; }
+}
+.animate-bolt {
+  animation: bolt-flash 0.8s ease-out both;
+  transform-origin: top center;
+}

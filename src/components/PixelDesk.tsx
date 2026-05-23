@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk } from "./pixel/scene";
 import { drawGuitar } from "./pixel/guitar";
 import {
@@ -63,6 +63,9 @@ export default function PixelDesk() {
   const monitorSize = isCompact
     ? { screenW: 340, screenH: 210 }
     : { screenW: 220, screenH: 140 };
+
+  // Weather — toggleable live rain in the window background.
+  const [raining, setRaining] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenRectRef = useRef<ScreenRect | null>(null);
   const [screenRect, setScreenRect] = useState<ScreenRect | null>(null);
@@ -322,6 +325,7 @@ export default function PixelDesk() {
             if (z) playType(z.id);
           }}
         />
+        {raining && <RainOverlay />}
         {screenRect && (
           <TerminalOverlay rect={screenRect} state={terminal} />
         )}
@@ -352,9 +356,169 @@ export default function PixelDesk() {
       {active && (
         <SectionModal id={active} onClose={() => setActive(null)} />
       )}
-      {/* Theme toggle — bottom-right, à la Alex Young */}
-      <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === "dark" ? "light" : "dark")} />
+      {/* Bottom-right control cluster: rain + theme toggles */}
+      <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5">
+        <RainToggle raining={raining} onToggle={() => setRaining(r => !r)} />
+        <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === "dark" ? "light" : "dark")} />
+      </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// RainOverlay — pure CSS animated raindrops falling over the upper
+// portion of the viewport (the "outside the window" area, above the desk).
+// Each drop is a thin slanted line with random column, delay, and speed.
+// ─────────────────────────────────────────────────────────────
+function RainOverlay() {
+  const drops = useMemo(() => {
+    return Array.from({ length: 90 }, (_, i) => {
+      const r1 = ((i * 9301 + 49297) % 233280) / 233280;
+      const r2 = ((i * 7901 + 13127) % 233280) / 233280;
+      const r3 = ((i * 5701 + 22817) % 233280) / 233280;
+      return {
+        left: r1 * 100,
+        delay: r2 * 2.4,
+        duration: 0.55 + r3 * 0.85,
+        opacity: 0.25 + r3 * 0.45,
+      };
+    });
+  }, []);
+
+  return (
+    <>
+      <div
+        className="absolute inset-x-0 top-0 pointer-events-none overflow-hidden"
+        style={{ height: "63%" }}
+      >
+        {drops.map((d, i) => (
+          <div
+            key={i}
+            className="absolute"
+            style={{
+              left: `${d.left}%`,
+              top: 0,
+              width: "1px",
+              height: "14px",
+              background: `linear-gradient(to bottom, rgba(220,232,248,0) 0%, rgba(220,232,248,${d.opacity}) 100%)`,
+              transform: "translateY(-10%)",
+              animation: `rainfall ${d.duration}s linear ${d.delay}s infinite`,
+            }}
+          />
+        ))}
+      </div>
+      <Thunder />
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Thunder — random lightning flashes over the whole scene, with an
+// occasional zigzag bolt drawn over the window area.
+// Each strike: 5–12s wait, ~900ms flash, ~40% chance also of bolt.
+// ─────────────────────────────────────────────────────────────
+function Thunder() {
+  const [strikeId, setStrikeId] = useState(0);
+  const [bolt, setBolt] = useState<{ id: number; x: number } | null>(null);
+
+  useEffect(() => {
+    let timeout: number | undefined;
+    let cancelled = false;
+    const scheduleNext = () => {
+      const wait = 5000 + Math.random() * 7000;
+      timeout = window.setTimeout(() => {
+        if (cancelled) return;
+        const id = Date.now();
+        setStrikeId(id);
+        if (Math.random() < 0.45) {
+          // Bolt strikes a random x in the window area.
+          setBolt({ id, x: 10 + Math.random() * 80 });
+          window.setTimeout(() => setBolt(null), 850);
+        }
+        scheduleNext();
+      }, wait);
+    };
+    scheduleNext();
+    return () => {
+      cancelled = true;
+      if (timeout !== undefined) clearTimeout(timeout);
+    };
+  }, []);
+
+  return (
+    <>
+      {/* Full-screen flash overlay — re-mounts each strike so the keyframe replays */}
+      {strikeId > 0 && (
+        <div
+          key={strikeId}
+          className="absolute inset-0 pointer-events-none z-10 animate-lightning"
+          style={{ mixBlendMode: "screen" }}
+        />
+      )}
+      {/* Lightning bolt — short zigzag SVG in the window area */}
+      {bolt && (
+        <svg
+          key={bolt.id}
+          className="absolute pointer-events-none z-10 animate-bolt"
+          style={{
+            left: `${bolt.x}%`,
+            top: "2%",
+            width: "12%",
+            height: "55%",
+            filter: "drop-shadow(0 0 14px rgba(220,230,255,0.9))",
+          }}
+          viewBox="0 0 100 200"
+          preserveAspectRatio="xMidYMin meet"
+        >
+          <polyline
+            points="55,0 30,70 60,75 25,160 70,90 35,85 65,10"
+            fill="none"
+            stroke="#f4f8ff"
+            strokeWidth="4"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <polyline
+            points="55,0 30,70 60,75 25,160 70,90 35,85 65,10"
+            fill="none"
+            stroke="rgba(180,210,255,0.5)"
+            strokeWidth="10"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
+    </>
+  );
+}
+
+function RainToggle({ raining, onToggle }: { raining: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={raining ? "Stop rain" : "Make it rain"}
+      className="w-10 h-10 flex items-center justify-center
+                 border border-transparent
+                 hover:border-neutral-500 hover:rounded-md hover:bg-neutral-900/40
+                 transition-all duration-150
+                 text-neutral-300 hover:text-white"
+    >
+      {raining ? (
+        // Sun icon — stop the rain
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      ) : (
+        // Cloud + rain icon — make it rain
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M16 13a4 4 0 0 0 0-8 5 5 0 0 0-9.78-1A4.5 4.5 0 1 0 5 13h11Z" />
+          <path d="M8 19l-1 2" />
+          <path d="M12 19l-1 2" />
+          <path d="M16 19l-1 2" />
+        </svg>
+      )}
+    </button>
   );
 }
 
@@ -363,8 +527,7 @@ function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }
     <button
       onClick={onToggle}
       aria-label="Toggle light/dark mode"
-      className="absolute bottom-4 right-4 z-30 w-10 h-10
-                 flex items-center justify-center
+      className="w-10 h-10 flex items-center justify-center
                  border border-transparent
                  hover:border-neutral-500 hover:rounded-md hover:bg-neutral-900/40
                  transition-all duration-150
