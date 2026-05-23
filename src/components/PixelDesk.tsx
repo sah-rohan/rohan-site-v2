@@ -299,16 +299,9 @@ export default function PixelDesk() {
   };
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a]">
-      {/* Aspect-ratio-preserving stage. Canvas + overlays scale together so
-          the scene never stretches; viewports that don't match get letterboxed. */}
-      <div
-        className="relative"
-        style={{
-          width: "min(100vw, calc(100vh * (640/400)))",
-          aspectRatio: "640 / 400",
-        }}
-      >
+    <div className="absolute inset-0 bg-[#0a0a0a]">
+      {/* Fill the full viewport — canvas stretches edge-to-edge on every device. */}
+      <div className="absolute inset-0">
         <canvas
           ref={canvasRef}
           width={CW}
