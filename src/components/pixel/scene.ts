@@ -15,13 +15,8 @@ export type Theme = "dark" | "light";
 
 export function drawWall(c: Ctx, theme: Theme = "dark") {
   // High-rise apartment: entire back wall is a floor-to-ceiling window.
-  // Dark mode  = procedural dusk Bay Bridge view.
-  // Light mode = procedural Golden Gate sunset, filling the full wall.
-  if (theme === "light") {
-    drawGoldenGateView(c, 0, 0, CW, DESK_TOP_Y);
-  } else {
-    drawBayView(c, 0, 0, CW, DESK_TOP_Y);
-  }
+  // Same Bay Bridge composition for both themes — just recolored.
+  drawBayView(c, 0, 0, CW, DESK_TOP_Y, theme);
 
   // Window frame — thin dark steel mullions framing the room edges.
   // Top header
@@ -46,74 +41,137 @@ function drawMullion(c: Ctx, x: number) {
 // No-op kept for API compat — the bay view is now baked into drawWall.
 export function drawWindow(_c: Ctx) { /* intentionally empty */ }
 
-export function drawBayView(c: Ctx, x: number, y: number, w: number, h: number) {
-  // The Bay Bridge at dusk, rendered to fill any rect. Composes:
-  // gradient dusk sky, distant SF skyline, the bridge silhouette with
-  // suspension cables + tower lights, dark bay water with reflections.
+// Palette swatches for the two times-of-day. Same composition, different colors.
+interface ViewPalette {
+  skyTop: string;       // top sky band
+  skyMid: string;       // middle sky band
+  skyHorizon: string;   // warm horizon haze
+  horizonStripDk: string;
+  horizonStripLt: string;
+  waterTop: string;
+  waterBot: string;
+  waterGlint: string;
+  waterGlintDk: string;
+  building: string;     // skyline silhouette fill
+  buildingHl: string;   // top-left highlight rim
+  buildingSh: string;   // shadow
+  windowLit: string;    // warm window light
+  windowDim: string;
+  bridge: string;       // tower/cable/deck primary
+  bridgeDk: string;     // tower/cable shadow
+  bridgeHl: string;     // tower/cable highlight
+  cable: string;
+  suspender: string;
+  deckLight: string;
+  star?: string;        // dark only
+}
 
-  // ── Sky (dusk gradient: deep navy top → warm amber horizon) ──
+const DARK_PALETTE: ViewPalette = {
+  skyTop: "#0a0f1a",
+  skyMid: "#1a2238",
+  skyHorizon: "#3a2a1e",
+  horizonStripDk: "#0d0c10",
+  horizonStripLt: "#1a1410",
+  waterTop: "#0a1018",
+  waterBot: "#03060a",
+  waterGlint: "#1a2840",
+  waterGlintDk: A.amberDk,
+  building: "#06080c",
+  buildingHl: "#10141e",
+  buildingSh: "#0c1018",
+  windowLit: A.amber,
+  windowDim: A.amberDk,
+  bridge: "#16181f",
+  bridgeDk: "#0a0c12",
+  bridgeHl: "#22242c",
+  cable: "#3a3a40",
+  suspender: "#1f1f24",
+  deckLight: A.amber,
+  star: "#c8c8c8",
+};
+
+const LIGHT_PALETTE: ViewPalette = {
+  skyTop: "#c8b6cd",       // pale lavender sky top
+  skyMid: "#deb8b0",       // dusty pink mid sky
+  skyHorizon: "#f5c898",   // warm peachy horizon
+  horizonStripDk: "#7a5840",
+  horizonStripLt: "#a8784e",
+  waterTop: "#3a4a6a",
+  waterBot: "#1a2a48",
+  waterGlint: "#7a9ac8",
+  waterGlintDk: "#d4854a",
+  building: "#3a2840",       // soft purple shadow face
+  buildingHl: "#5a3c54",     // mid mauve
+  buildingSh: "#28182c",
+  windowLit: "#f5b070",      // warm orange window
+  windowDim: "#d48c52",
+  bridge: "#d86028",         // GOLDEN GATE orange
+  bridgeDk: "#8a3a18",
+  bridgeHl: "#e87838",
+  cable: "#c84a20",
+  suspender: "#a83a18",
+  deckLight: "#f5b070",
+};
+
+export function drawBayView(
+  c: Ctx, x: number, y: number, w: number, h: number, theme: Theme = "dark",
+) {
+  const P = theme === "light" ? LIGHT_PALETTE : DARK_PALETTE;
+
+  // ── Sky gradient ──
   for (let yy = 0; yy < h; yy++) {
     const t = yy / h;
     let col: string;
     if (t < 0.35) {
-      // Deep dusk navy
-      const k = t / 0.35;
-      col = blend("#0a0f1a", "#1a2238", k);
+      col = blend(P.skyTop, P.skyMid, t / 0.35);
     } else if (t < 0.55) {
-      // Warm horizon haze
-      const k = (t - 0.35) / 0.2;
-      col = blend("#1a2238", "#3a2a1e", k);
+      col = blend(P.skyMid, P.skyHorizon, (t - 0.35) / 0.2);
     } else if (t < 0.62) {
-      // Distant skyline darken
-      col = "#1a1814";
+      col = P.horizonStripLt;
     } else {
-      // Bay water — dark with faint highlights
-      const k = (t - 0.62) / 0.38;
-      col = blend("#0a1018", "#03060a", k);
+      col = blend(P.waterTop, P.waterBot, (t - 0.62) / 0.38);
     }
     hline(c, x, y + yy, w, col);
   }
 
-  // ── Stars (sparse, top third only) ──
-  let s = 12345;
-  for (let i = 0; i < 14; i++) {
-    s = (s * 9301 + 49297) % 233280;
-    const px0 = x + (s % w);
-    const py0 = y + ((s >> 4) % Math.floor(h * 0.3));
-    px(c, px0, py0, "#c8c8c8");
-    if ((s & 3) === 0) {
-      px(c, px0 + 1, py0, "#8a8a8a");
-      px(c, px0, py0 + 1, "#8a8a8a");
+  // ── Stars (dark only) ──
+  if (P.star) {
+    let s = 12345;
+    for (let i = 0; i < 14; i++) {
+      s = (s * 9301 + 49297) % 233280;
+      const px0 = x + (s % w);
+      const py0 = y + ((s >> 4) % Math.floor(h * 0.3));
+      px(c, px0, py0, P.star);
+      if ((s & 3) === 0) {
+        px(c, px0 + 1, py0, "#8a8a8a");
+        px(c, px0, py0 + 1, "#8a8a8a");
+      }
     }
   }
 
   // ── Distant SF skyline silhouette ──
   const skyBase = y + Math.floor(h * 0.62);
-  drawSkyline(c, x, skyBase, w);
+  drawSkyline(c, x, skyBase, w, P);
 
   // ── Bay Bridge ──
-  drawBayBridge(c, x, y, w, h);
+  drawBayBridge(c, x, y, w, h, P);
 
-  // ── Water highlights (light reflections under the bridge) ──
+  // ── Water highlights ──
   for (let yy = skyBase + 4; yy < y + h; yy++) {
     const t = (yy - skyBase) / (y + h - skyBase);
-    // sparse horizontal glints
     if (yy % 3 === 0) {
       let r = (yy * 73 + 11) % 1000;
       for (let k = 0; k < 4; k++) {
         r = (r * 9301 + 49297) % 233280;
         const xx = x + (r % w);
-        if ((r & 7) === 0) px(c, xx, yy, A.amberDk);
-        else if ((r & 3) === 0) px(c, xx, yy, "#1a2840");
+        if ((r & 7) === 0) px(c, xx, yy, P.waterGlintDk);
+        else if ((r & 3) === 0) px(c, xx, yy, P.waterGlint);
       }
     }
-    // very faint amber reflection band right under the bridge lights
     if (t < 0.25 && yy % 2 === 0) {
-      stipple(c, x + 4, yy, w - 8, 1, A.amberDk, 0.04, yy);
+      stipple(c, x + 4, yy, w - 8, 1, P.waterGlintDk, 0.04, yy);
     }
   }
-
-  // (mullion intentionally drawn by drawWall in the high-rise variant)
 }
 
 // Linear-blend two hex colors. Cheap, no clamping.
@@ -130,118 +188,104 @@ function blend(a: string, b: string, t: number): string {
   return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${bl.toString(16).padStart(2, "0")}`;
 }
 
-function drawSkyline(c: Ctx, x: number, baseY: number, w: number) {
-  // Procedural skyline — buildings of varying heights, with sparse window lights.
+function drawSkyline(c: Ctx, x: number, baseY: number, w: number, P: ViewPalette) {
   let s = 91;
   for (let i = 0; i < w; ) {
     s = (s * 9301 + 49297) % 233280;
     const bw = 4 + Math.floor((s / 233280) * 10);
     s = (s * 9301 + 49297) % 233280;
     const bh = 6 + Math.floor((s / 233280) * 18);
-    // Tall accent building occasionally (Salesforce Tower-ish)
     const tall = (s & 31) === 0 ? bh + 14 : bh;
     if (i + bw > w) break;
-    // Building silhouette
-    rect(c, x + i, baseY - tall, bw, tall, "#06080c");
-    // Building rim highlight on top-left
-    hline(c, x + i, baseY - tall, bw, "#10141e");
-    vline(c, x + i, baseY - tall, tall, "#0c1018");
-    // Window lights — sparse warm dots
+    rect(c, x + i, baseY - tall, bw, tall, P.building);
+    hline(c, x + i, baseY - tall, bw, P.buildingHl);
+    vline(c, x + i, baseY - tall, tall, P.buildingSh);
+    // Window lights
     let r = s;
     for (let j = 0; j < tall - 3; j += 3) {
       for (let k = 1; k < bw - 1; k += 2) {
         r = (r * 9301 + 49297) % 233280;
         if ((r / 233280) < 0.18) {
-          px(c, x + i + k, baseY - tall + j + 1, A.amber);
+          px(c, x + i + k, baseY - tall + j + 1, P.windowLit);
         } else if ((r / 233280) < 0.22) {
-          px(c, x + i + k, baseY - tall + j + 1, A.amberDk);
+          px(c, x + i + k, baseY - tall + j + 1, P.windowDim);
         }
       }
     }
-    // Antenna on tall buildings
     if (tall > bh + 5) {
-      vline(c, x + i + (bw >> 1), baseY - tall - 3, 3, "#0a0c12");
-      px(c, x + i + (bw >> 1), baseY - tall - 3, A.amber);
+      vline(c, x + i + (bw >> 1), baseY - tall - 3, 3, P.buildingSh);
+      px(c, x + i + (bw >> 1), baseY - tall - 3, P.windowLit);
     }
     i += bw;
   }
-  // Faint horizon glow line
-  hline(c, x, baseY, w, "#1a1410");
-  hline(c, x, baseY + 1, w, "#0d0c10");
+  hline(c, x, baseY, w, P.horizonStripLt);
+  hline(c, x, baseY + 1, w, P.horizonStripDk);
 }
 
-function drawBayBridge(c: Ctx, x: number, y: number, w: number, h: number) {
-  // The Bay Bridge — west span suspension structure.
-  // Two towers, suspension cable curve between them, deck line, tower lights.
-  //
-  // Coords:
-  //   bridgeY      = the deck (roadway) y-position
-  //   towerH       = height of tower above deck
-  //   tower1X, tower2X = horizontal positions of the two towers
+function drawBayBridge(
+  c: Ctx, x: number, y: number, w: number, h: number, P: ViewPalette,
+) {
   const bridgeY = y + Math.floor(h * 0.66);
   const towerH = 44;
   const tower1X = x + Math.floor(w * 0.18);
   const tower2X = x + Math.floor(w * 0.74);
   const towerW = 4;
 
-  // ── Suspension cable (main span between towers) ──
-  // Catenary curve: sags down at mid-span.
-  const sagY = bridgeY - 6; // lowest point of cable mid-span
-  drawCableArc(c, tower1X, bridgeY - towerH, tower2X, bridgeY - towerH, sagY, "#3a3a40");
+  // Main cable
+  const sagY = bridgeY - 6;
+  drawCableArc(c, tower1X, bridgeY - towerH, tower2X, bridgeY - towerH, sagY, P.cable);
+  // Side cables
+  drawCableArc(c, x + 2, bridgeY - 2, tower1X, bridgeY - towerH, bridgeY - 2, P.cable);
+  drawCableArc(c, tower2X, bridgeY - towerH, x + w - 2, bridgeY - 2, bridgeY - 2, P.cable);
 
-  // ── Side cables anchoring off the towers down to deck ends ──
-  drawCableArc(c, x + 2, bridgeY - 2, tower1X, bridgeY - towerH, bridgeY - 2, "#2a2a30");
-  drawCableArc(c, tower2X, bridgeY - towerH, x + w - 2, bridgeY - 2, bridgeY - 2, "#2a2a30");
-
-  // ── Vertical suspender cables between main cable and deck ──
+  // Suspenders
   for (let xx = tower1X + 4; xx < tower2X - 2; xx += 4) {
     const t = (xx - tower1X) / (tower2X - tower1X);
-    // cable height at xx, parabolic
     const cy = bridgeY - towerH + (bridgeY - sagY - (bridgeY - towerH - sagY))
       * 4 * t * (1 - t);
     const top = Math.round(cy);
     for (let yy = top + 1; yy < bridgeY - 1; yy++) {
-      if (yy % 2 === 0) px(c, xx, yy, "#1f1f24");
+      if (yy % 2 === 0) px(c, xx, yy, P.suspender);
     }
   }
 
-  // ── Bridge deck (roadway) ──
-  rect(c, x + 2, bridgeY - 2, w - 4, 3, "#0a0a0e");
-  hline(c, x + 2, bridgeY - 2, w - 4, "#1a1a22");
-  hline(c, x + 2, bridgeY,     w - 4, "#05060a");
-  // Roadway light dots along the deck
+  // Bridge deck
+  rect(c, x + 2, bridgeY - 2, w - 4, 3, P.bridgeDk);
+  hline(c, x + 2, bridgeY - 2, w - 4, P.bridge);
+  hline(c, x + 2, bridgeY,     w - 4, P.bridgeDk);
+  // Roadway light dots
   for (let xx = x + 6; xx < x + w - 6; xx += 5) {
-    px(c, xx, bridgeY - 1, A.amber);
-    if (((xx >> 1) % 3) === 0) px(c, xx, bridgeY - 1, "#f6d68a");
+    px(c, xx, bridgeY - 1, P.deckLight);
   }
-  // Lower deck shadow line (Bay Bridge has two decks)
-  hline(c, x + 2, bridgeY + 4, w - 4, "#08080c");
-  hline(c, x + 2, bridgeY + 5, w - 4, "#04050a");
+  // Lower deck
+  hline(c, x + 2, bridgeY + 4, w - 4, P.bridgeDk);
+  hline(c, x + 2, bridgeY + 5, w - 4, blend(P.bridgeDk, "#000000", 0.5));
 
-  // ── Towers ──
-  drawTower(c, tower1X, bridgeY, towerH, towerW);
-  drawTower(c, tower2X, bridgeY, towerH, towerW);
-
-  // ── Tower top aircraft warning light (red) ──
+  // Towers
+  drawTower(c, tower1X, bridgeY, towerH, towerW, P);
+  drawTower(c, tower2X, bridgeY, towerH, towerW, P);
+  // Aircraft warning lights — keep classic red even in light mode for recognition
   px(c, tower1X + (towerW >> 1), bridgeY - towerH - 1, A.red);
   px(c, tower2X + (towerW >> 1), bridgeY - towerH - 1, A.red);
 }
 
-function drawTower(c: Ctx, x: number, deckY: number, h: number, w: number) {
+function drawTower(
+  c: Ctx, x: number, deckY: number, h: number, w: number, P: ViewPalette,
+) {
   // Tower above deck
-  rect(c, x, deckY - h, w, h, "#16181f");
-  vline(c, x, deckY - h, h, "#22242c");
-  vline(c, x + w - 1, deckY - h, h, "#0a0c12");
-  // Tower below deck (pier, fades to dark water)
+  rect(c, x, deckY - h, w, h, P.bridge);
+  vline(c, x, deckY - h, h, P.bridgeHl);
+  vline(c, x + w - 1, deckY - h, h, P.bridgeDk);
+  // Pier below deck — fades to water
   for (let i = 0; i < 12; i++) {
-    rect(c, x, deckY + i, w, 1, blend("#0a0c12", "#03050a", i / 12));
+    rect(c, x, deckY + i, w, 1, blend(P.bridgeDk, P.waterBot, i / 12));
   }
-  // Cross-brace mid-tower (typical of Bay Bridge towers)
-  hline(c, x - 1, deckY - Math.floor(h * 0.55), w + 2, "#1a1c22");
-  // Tiny perimeter lights climbing the tower
+  // Cross-brace mid-tower
+  hline(c, x - 1, deckY - Math.floor(h * 0.55), w + 2, P.bridgeHl);
+  // Perimeter lights climbing the tower
   for (let yy = 4; yy < h; yy += 8) {
-    px(c, x - 1, deckY - yy, A.amberDk);
-    px(c, x + w, deckY - yy, A.amberDk);
+    px(c, x - 1, deckY - yy, P.deckLight);
+    px(c, x + w, deckY - yy, P.deckLight);
   }
 }
 
