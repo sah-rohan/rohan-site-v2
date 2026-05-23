@@ -48,7 +48,10 @@ export default function PixelDesk() {
   const [typing, setTyping] = useState(false);
 
   const [terminal, setTerminal] = useState({
-    history: ["welcome to rohan@portfolio", "type or click an object →"],
+    history: [
+      "welcome to rohan@portfolio.sh — type a command or click anything",
+      "try: projects · education · music · contact · experience · interests · help · ls",
+    ],
     currentCmd: "",
     cursorOn: true,
   });
@@ -143,6 +146,89 @@ export default function PixelDesk() {
     }, 520);
     return () => window.clearInterval(id);
   }, []);
+
+  // Parse a typed command — match section name or alias, otherwise echo error.
+  const runCommand = useCallback((rawCmd: string) => {
+    const cmd = rawCmd.trim().toLowerCase();
+    if (!cmd) return;
+    // Section aliases
+    const ALIASES: Record<string, SectionId> = {
+      music: "music", guitar: "music",
+      projects: "projects", proj: "projects", ls: "projects",
+      education: "education", edu: "education", school: "education", books: "education",
+      contact: "contact", email: "contact", phone: "contact",
+      experience: "experience", exp: "experience", work: "experience", resume: "experience",
+      interests: "interests", hobbies: "interests", run: "interests", running: "interests",
+    };
+    if (ALIASES[cmd]) {
+      const id = ALIASES[cmd];
+      setTerminal(t => ({
+        history: [...t.history, `$ ${rawCmd}`, `> opening ${id}…`].slice(-6),
+        currentCmd: "",
+        cursorOn: t.cursorOn,
+      }));
+      setActive(id);
+      return;
+    }
+    if (cmd === "help" || cmd === "?" ) {
+      setTerminal(t => ({
+        history: [...t.history, `$ ${rawCmd}`,
+          "commands: projects, education, music, contact, experience, interests",
+          "aliases: ls, work, resume, school, hobbies, running, guitar",
+          "clear — wipe screen",
+        ].slice(-6),
+        currentCmd: "",
+        cursorOn: t.cursorOn,
+      }));
+      return;
+    }
+    if (cmd === "clear" || cmd === "cls") {
+      setTerminal(t => ({ history: [], currentCmd: "", cursorOn: t.cursorOn }));
+      return;
+    }
+    if (cmd === "whoami") {
+      setTerminal(t => ({
+        history: [...t.history, `$ ${rawCmd}`, "rohan sah — student, builder, runner."].slice(-6),
+        currentCmd: "",
+        cursorOn: t.cursorOn,
+      }));
+      return;
+    }
+    // Unknown
+    setTerminal(t => ({
+      history: [...t.history, `$ ${rawCmd}`, `zsh: command not found: ${cmd} — try 'help'`].slice(-6),
+      currentCmd: "",
+      cursorOn: t.cursorOn,
+    }));
+  }, []);
+
+  // Global keyboard listener — type into the terminal at all times unless a modal is open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (active) return;        // modal handles its own keys
+      if (typing) return;        // ignore while click-animation is playing
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        setTerminal(t => {
+          runCommand(t.currentCmd);
+          return t; // runCommand updates state itself
+        });
+        return;
+      }
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        setTerminal(t => ({ ...t, currentCmd: t.currentCmd.slice(0, -1) }));
+        return;
+      }
+      if (e.key.length === 1) {
+        e.preventDefault();
+        setTerminal(t => ({ ...t, currentCmd: t.currentCmd + e.key }));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, typing, runCommand]);
 
   // Animate typing a command, then open modal.
   const playType = useCallback(async (id: SectionId) => {

@@ -8,54 +8,58 @@ import { G, W, A } from "./palette";
 // ─────────────────────────────────────────────────────────────
 export interface ScreenRect { x: number; y: number; w: number; h: number; }
 
-// Bitten-apple Apple logo. 11 wide × 13 tall (plus 3-row leaf above).
-// (x, y) is the TOP-LEFT of the apple body (leaf is drawn above at y - leafH).
-// `col` paints the logo; `bg` is the surface color used to "carve" the bite.
+// Bitten-apple Apple logo. 13 wide × 16 tall apple body + 3-row leaf above.
+// Designed to read clearly: two distinct top lobes with V-notch, slim waist,
+// wide rounded bottom, prominent bite carved from upper-right.
+// (x, y) is TOP-LEFT of the apple body (leaf is above).
+// `col` paints the logo; `bg` carves the bite (pass the surface color).
 export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: string) {
-  // Apple silhouette — pixel-perfect, recognizable at this size.
-  // Top has a small V-notch in the center (where stem would meet); bite is on
-  // the upper-right curve.
   const body = [
-    ".####.#####",  // 0  V notch between top humps
-    ".##########",  // 1
-    "###########",  // 2
-    "###########",  // 3
-    "###########",  // 4
-    "###########",  // 5
-    "###########",  // 6
-    "###########",  // 7
-    "###########",  // 8
-    ".#########.",  // 9
-    "..#######..",  // 10
-    "...#####...",  // 11
-    "....###....",  // 12
+    "....##.##....",  // 0   two top humps with V notch
+    "...########..",  // 1
+    "..##########.",  // 2
+    ".############",  // 3
+    ".############",  // 4
+    "#############",  // 5   widest
+    "#############",  // 6
+    "#############",  // 7
+    "#############",  // 8
+    "#############",  // 9
+    ".###########.",  // 10
+    ".###########.",  // 11
+    "..#########..",  // 12
+    "..#########..",  // 13  bottom slight inward
+    "...#######...",  // 14
+    "....#####....",  // 15  rounded base
   ];
-  // Leaf — small angled blade extending up-right from the V notch.
+  // Leaf — small diagonal blade rising up-right from the right-hand hump.
   const leaf = [
-    "......##...",
-    ".....##....",
-    "....##.....",
+    "........##...",
+    ".......##....",
+    "......##.....",
   ];
 
-  // Paint leaf
+  // Leaf
   for (let j = 0; j < leaf.length; j++) {
     for (let i = 0; i < leaf[j].length; i++) {
       if (leaf[j][i] === "#") px(c, x + i, y - leaf.length + j, col);
     }
   }
-  // Paint body
+  // Body
   for (let j = 0; j < body.length; j++) {
     for (let i = 0; i < body[j].length; i++) {
       if (body[j][i] === "#") px(c, x + i, y + j, col);
     }
   }
-  // Bite — carve a curved notch out of the upper-right side using the
-  // surface color (so the silhouette reads as bitten).
+  // Bite — concave notch carved out of the upper-right side. The bite is
+  // what makes the logo unmistakable.
   if (bg) {
     const bite: [number, number][] = [
-      [9, 3], [10, 3],
-      [8, 4], [9, 4], [10, 4],
-      [9, 5], [10, 5],
+      [10, 4], [11, 4], [12, 4],
+      [9, 5],  [10, 5], [11, 5], [12, 5],
+      [9, 6],  [10, 6], [11, 6], [12, 6],
+      [10, 7], [11, 7], [12, 7],
+      [11, 8], [12, 8],
     ];
     for (const [i, j] of bite) px(c, x + i, y + j, bg);
   }
@@ -151,8 +155,8 @@ export function drawTerminalBackground(c: Ctx, s: ScreenRect) {
 // (cx, deskTopY) — cx is horizontal center, deskTopY anchors the top edge.
 // ─────────────────────────────────────────────────────────────
 export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
-  const w = 96;           // smaller footprint to fit alongside keyboard + mouse
-  const h = 22;           // slim — laptop lying flat
+  const w = 100;          // smaller footprint to fit alongside keyboard + mouse
+  const h = 28;           // gives the apple logo room to read
   const x = cx - w / 2;
   const y = deskTopY + 2; // sits on the desk surface, same band as keyboard
 
@@ -177,7 +181,7 @@ export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
   hline(c, x + 4, y + h - 3, w - 8, G.g50);
 
   // ── Apple logo, centered ──
-  drawAppleLogo(c, cx - 5, y + 4, G.g30, G.g80);
+  drawAppleLogo(c, cx - 6, y + 5, G.g30, G.g80);
 
   // ── Cable port on back edge + cable to monitor ──
   rect(c, x + 14, y + h - 1, 6, 2, G.g30);
@@ -386,15 +390,27 @@ export function drawPhone(c: Ctx, cx: number, deskTopY: number) {
   hline(c, x + 1, y + ph - 1, pw - 2, G.ink);
   vline(c, x, y + 1, ph - 2, G.g25);
   vline(c, x + pw - 1, y + 1, ph - 2, G.g05);
-  // Screen recess (dark inset)
-  rect(c, x + 2, y + 3, pw - 4, ph - 5, G.ink);
-  // Camera notch / dynamic island at top of screen
+  // Screen recess — lit wallpaper (soft dusk-blue glow, matches the view).
+  // Gradient from cooler at top to warmer at bottom.
+  for (let yy = y + 3; yy < y + ph - 2; yy++) {
+    const t = (yy - (y + 3)) / (ph - 5);
+    const col = t < 0.35 ? "#1a2a48" : t < 0.7 ? "#22325a" : "#3a3050";
+    hline(c, x + 2, yy, pw - 4, col);
+  }
+  // Camera notch / dynamic island at top
   rect(c, x + (pw >> 1) - 3, y + 4, 6, 2, "#020203");
-  // Apple logo centered on the back-screen wallpaper
-  drawAppleLogo(c, cx - 5, y + 8, G.g60, G.ink);
-  // Single amber notification glow near bottom of screen
+  // Lock-screen time text (just a bright horizontal blob — too small for actual chars)
+  hline(c, x + (pw >> 1) - 4, y + 9, 8, "#c8d4ec");
+  px(c, x + (pw >> 1) - 5, y + 9, "#a0b0d0");
+  px(c, x + (pw >> 1) + 4, y + 9, "#a0b0d0");
+  // Subtle screen sheen — diagonal lighter band (gives "lit up" look)
+  for (let i = 0; i < 6; i++) {
+    px(c, x + 3 + i, y + 5 + i, "rgba(255,255,255,0.06)");
+  }
+  // Amber notification glow at bottom of screen
   rect(c, x + 3, y + ph - 5, pw - 6, 2, A.amberDk);
   px(c, x + 4, y + ph - 5, A.amber);
+  px(c, x + 6, y + ph - 5, A.amber);
   // Drop shadow on desk (tight — phone is thin)
   hline(c, x + 1, y + ph, pw - 2, W.dk);
   hline(c, x + 2, y + ph + 1, pw - 4, W.d2);
@@ -604,43 +620,103 @@ function drawShoeLace(c: Ctx, x1: number, y1: number, x2: number, y2: number) {
 }
 
 function drawHangingShoe(c: Ctx, cx: number, topY: number, mirrored: boolean) {
-  // Compact side-on running shoe — sole bottom (heel-down hang).
-  const w = 28, h = 16;
-  const x = cx - w / 2;
+  // Side-on running sneaker. Drawn with a clear silhouette:
+  //   - High heel collar at one end
+  //   - Curved upper sweeping forward to a low rounded toe
+  //   - Chunky white midsole all along the bottom
+  //   - Tongue + laces in the middle
+  //   - Nike swoosh across the side
+  // Mirrored=true → toe points right; false → toe points left.
+  const W2 = 34, H2 = 18;
+  const x = cx - W2 / 2;
   const y = topY;
 
-  // Upper body — dark gray
-  for (let j = 0; j < h - 5; j++) {
-    const t = j / (h - 5);
-    const leftCut = mirrored ? Math.floor((1 - t) * 4) : Math.max(0, 5 - j);
-    const rightCut = mirrored ? Math.max(0, 5 - j) : Math.floor((1 - t) * 4);
-    rect(c, x + leftCut, y + j, w - leftCut - rightCut, 1, G.g15);
-    // top sheen
-    if (j === 0) hline(c, x + leftCut + 1, y + j, w - leftCut - rightCut - 2, G.g35);
+  // Upper silhouette — per-row half-widths (creates the shoe profile).
+  // Heel side is tall; midfoot dips a bit at the topline; toe rounds down.
+  // Profile: top edge of the upper, drawn as a curve.
+  const upperTop: number[] = []; // for each column, the top-y offset (0=highest)
+  for (let i = 0; i < W2; i++) {
+    const t = i / (W2 - 1);
+    // Position along shoe: 0 = heel, 1 = toe (or reversed if mirrored)
+    const u = mirrored ? t : 1 - t;
+    let top: number;
+    if (u < 0.18) {
+      // Heel collar — high, rounded
+      const k = u / 0.18;
+      top = 1 + Math.round((1 - k) * 2);
+    } else if (u < 0.45) {
+      // Ankle/midfoot dip
+      const k = (u - 0.18) / 0.27;
+      top = 3 + Math.round(Math.sin(k * Math.PI) * 1);
+    } else if (u < 0.85) {
+      // Forefoot — gentle slope toward toe
+      const k = (u - 0.45) / 0.4;
+      top = 4 + Math.round(k * 2);
+    } else {
+      // Toe — curves down to meet sole
+      const k = (u - 0.85) / 0.15;
+      top = 6 + Math.round(k * 3);
+    }
+    upperTop.push(top);
   }
-  // Heel collar
-  const heelX = mirrored ? x + w - 8 : x;
-  rect(c, heelX, y, 6, 3, G.g30);
-  hline(c, heelX, y, 6, G.g45);
-  // Sole — chunky white midsole + dark outsole
-  rect(c, x, y + h - 5, w, 4, G.paper);
-  hline(c, x, y + h - 5, w, G.white);
-  rect(c, x, y + h - 1, w, 1, G.g15);
-  px(c, x, y + h - 6, G.paper);
-  px(c, x + w - 1, y + h - 6, G.paper);
-  // Sole curl at heel + toe
-  px(c, mirrored ? x + w - 1 : x, y + h - 2, G.g60);
 
-  // Laces — 4 horizontal slashes mid-shoe
-  const laceX = mirrored ? x + 4 : x + w - 12;
-  for (let i = 0; i < 4; i++) {
-    rect(c, laceX, y + 3 + i * 2, 8, 1, G.paper);
-    px(c, laceX, y + 3 + i * 2, G.g60);
+  // Fill upper body (dark gray with subtle vertical shading)
+  for (let i = 0; i < W2; i++) {
+    const top = upperTop[i];
+    for (let j = top; j < H2 - 4; j++) {
+      // Two-tone: top half lighter, bottom darker
+      const col = j - top < 2 ? G.g35 : j > H2 - 8 ? G.g10 : G.g20;
+      px(c, x + i, y + j, col);
+    }
+    // Upper rim highlight
+    px(c, x + i, y + top, G.g50);
   }
 
-  // ── NIKE SWOOSH ──
-  // Stylized swoosh: thick curve starting fat at heel, tapering to thin point at toe.
-  drawNikeSwoosh(c, x, y, w, h, mirrored);
+  // Heel collar inner padding (light)
+  const heelStart = mirrored ? 0 : W2 - 7;
+  for (let i = 0; i < 6; i++) {
+    px(c, x + heelStart + i, y + upperTop[heelStart + i] + 1, G.paper);
+  }
+
+  // Tongue + laces area in the midfoot
+  const tongueStart = mirrored ? 8 : W2 - 16;
+  const tongueEnd = mirrored ? 16 : W2 - 8;
+  // Tongue patch — slightly lighter than upper
+  for (let i = tongueStart; i < tongueEnd; i++) {
+    for (let j = upperTop[i]; j < upperTop[i] + 6; j++) {
+      px(c, x + i, y + j, G.g30);
+    }
+  }
+  // Laces — 4 horizontal stripes across the tongue
+  for (let r = 0; r < 4; r++) {
+    const ly = y + upperTop[tongueStart] + 1 + r * 2;
+    rect(c, x + tongueStart + 1, ly, tongueEnd - tongueStart - 2, 1, G.paper);
+    px(c, x + tongueStart + 1, ly, G.g60);
+    px(c, x + tongueEnd - 2, ly, G.g60);
+  }
+
+  // ── Midsole (chunky white) ──
+  rect(c, x + 1, y + H2 - 5, W2 - 2, 3, G.paper);
+  hline(c, x + 1, y + H2 - 5, W2 - 2, G.white);
+  // Midsole curl up at toe + heel ends
+  px(c, x, y + H2 - 5, G.paper);
+  px(c, x + W2 - 1, y + H2 - 5, G.paper);
+  px(c, x, y + H2 - 4, G.paper);
+  px(c, x + W2 - 1, y + H2 - 4, G.paper);
+  // Midsole bottom shadow line
+  hline(c, x + 1, y + H2 - 3, W2 - 2, G.g70);
+  // ── Outsole (dark rubber) ──
+  rect(c, x + 2, y + H2 - 2, W2 - 4, 2, G.g15);
+  hline(c, x + 2, y + H2 - 2, W2 - 4, G.g25);
+  // Tread blocks at the toe
+  const toeX = mirrored ? x + W2 - 5 : x + 2;
+  for (let i = 0; i < 4; i++) px(c, toeX + (mirrored ? -i : i), y + H2 - 1, G.ink);
+  // Heel tread
+  const heelTreadX = mirrored ? x + 2 : x + W2 - 5;
+  for (let i = 0; i < 4; i++) px(c, heelTreadX + i, y + H2 - 1, G.ink);
+
+  // ── Nike swoosh across the side ──
+  drawNikeSwoosh(c, x, y, W2, H2, mirrored);
 }
 
 function drawNikeSwoosh(c: Ctx, x: number, y: number, w: number, h: number, mirrored: boolean) {
