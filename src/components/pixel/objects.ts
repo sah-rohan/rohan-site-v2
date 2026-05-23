@@ -54,18 +54,21 @@ export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: st
       if (body[j][i] === "#") px(c, x + i, y + j, col);
     }
   }
-  // Bite — deep concave notch carved out of the upper-right side. The bite
-  // is what makes the logo unmistakable.
+  // Bite — circular concave notch carved out of the upper-right side.
+  // Generated as a filled circle of radius ~3 centered on (11, 6), so the
+  // bite reads as a clean round indent (not a triangular V).
   if (bg) {
-    const bite: [number, number][] = [
-      [11, 4], [12, 4],
-      [9, 5],  [10, 5], [11, 5], [12, 5],
-      [8, 6],  [9, 6],  [10, 6], [11, 6], [12, 6],
-      [9, 7],  [10, 7], [11, 7], [12, 7],
-      [10, 8], [11, 8], [12, 8],
-      [11, 9], [12, 9],
-    ];
-    for (const [i, j] of bite) px(c, x + i, y + j, bg);
+    const bcx = 11, bcy = 6, br = 3;
+    for (let j = -br; j <= br; j++) {
+      for (let i = -br; i <= br; i++) {
+        // Slightly elongated to feel like an apple bite (taller than wide)
+        const dx = i;
+        const dy = j;
+        if (dx * dx + dy * dy <= br * br + 1) {
+          px(c, x + bcx + dx, y + bcy + dy, bg);
+        }
+      }
+    }
   }
 }
 
@@ -209,23 +212,14 @@ export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
     px(c, xx | 0, (yy | 0) + 1, G.g20);
   }
 
-  // ── Charger cable from RIGHT side ──
-  // Port on right edge (MagSafe-ish)
+  // ── Charger port on RIGHT side ──
+  // (the cable goes BEHIND the desk to the brick — only a short stub visible)
   rect(c, x + w - 1, y + 8, 2, 4, "#3a3a40");
   px(c, x + w, y + 8, "#5a5a60");
-  // Cable trails off to the right, going down and off-desk to the brick
-  // (brick is drawn separately by drawChargerBrick).
-  const ccStartX = x + w + 1;
-  const ccStartY = y + 10;
-  const ccEndX = ccStartX + 40;
-  const ccEndY = deskTopY + 30;
-  for (let i = 0; i <= 60; i++) {
-    const t = i / 60;
-    const xx = ccStartX + (ccEndX - ccStartX) * t;
-    const yy = ccStartY + (ccEndY - ccStartY) * t + Math.sin(t * Math.PI) * 6;
-    // Charger cable is white (Apple-style)
-    px(c, xx | 0, yy | 0, G.paper);
-    if (i % 4 === 0) px(c, xx | 0, (yy | 0) + 1, G.g75);
+  // Tiny stub of white cable visible just to the right of the port before
+  // it drops behind the desk surface.
+  for (let i = 0; i < 4; i++) {
+    px(c, x + w + 1 + i, y + 10 + i, G.paper);
   }
 
   // Drop shadow under laptop on desk
@@ -569,8 +563,10 @@ export function drawChargerBrick(c: Ctx, cx: number, deskTopY: number) {
   px(c, bx + brickW - 1, by, G.g70);
   px(c, bx, by + brickH - 1, G.g50);
   px(c, bx + brickW - 1, by + brickH - 1, G.g40);
-  // Subtle Apple logo embossed on brick (very small, gray)
-  drawAppleLogo(c, cx - 6, by + 5, G.g70, G.paper);
+  // Brick has no logo — just a clean white slab with a slight center sheen.
+  hline(c, bx + 4, by + 6, brickW - 8, G.white);
+  // Tiny LED indicator dot
+  px(c, bx + brickW - 4, by + brickH - 4, A.greenLt);
   // ── Two prongs going into a small outlet just below ──
   const oy = by + brickH;
   rect(c, cx - 4, oy, 2, 3, G.g30);
@@ -586,14 +582,15 @@ export function drawChargerBrick(c: Ctx, cx: number, deskTopY: number) {
   rect(c, cx + 2, oy + 3, 2, 4, G.ink);
   // Ground hole below
   rect(c, cx - 1, oy + 7, 2, 2, G.ink);
-  // Charger cable coming out the TOP of the brick (loops up to laptop)
-  for (let i = 0; i < 30; i++) {
-    const t = i / 30;
-    const x = (cx + Math.sin(t * Math.PI) * 3) | 0;
-    const y = by - i;
-    if (y < deskTopY + 28) break;
-    px(c, x, y, G.paper);
-    if (i % 4 === 0) px(c, x, y - 1, G.g75);
+  // Charger cable rising from the brick straight up and DISAPPEARING behind
+  // the desk (we stop the cable just below the desk's bottom front edge so
+  // it visually reads as "going behind" the desk).
+  const cableTopStop = 304; // just below DESK_BOTTOM_Y so brick→behind reads
+  for (let yy = by; yy > cableTopStop; yy--) {
+    const t = (by - yy) / (by - cableTopStop);
+    const xx = (cx + Math.sin(t * Math.PI * 1.5) * 2) | 0;
+    px(c, xx, yy, G.paper);
+    if (((by - yy) % 4) === 0) px(c, xx, yy - 1, G.g75);
   }
 }
 
@@ -700,103 +697,114 @@ function drawShoeLace(c: Ctx, x1: number, y1: number, x2: number, y2: number) {
 }
 
 function drawHangingShoe(c: Ctx, cx: number, topY: number, mirrored: boolean) {
-  // Side-on running sneaker. Drawn with a clear silhouette:
-  //   - High heel collar at one end
-  //   - Curved upper sweeping forward to a low rounded toe
-  //   - Chunky white midsole all along the bottom
-  //   - Tongue + laces in the middle
-  //   - Nike swoosh across the side
-  // Mirrored=true → toe points right; false → toe points left.
+  // Side-on sneaker silhouette. Clear, simple, recognizable.
+  // No swoosh — just a clean shoe shape.
+  //
+  //   ╱─────╲___      <- upper (heel collar high, toe low)
+  //   ▓ . . . ▓         tongue + laces
+  //   ═══════════       midsole (white)
+  //   ───────────       outsole (dark rubber)
+  //
+  // Mirrored=true → toe points right, heel left. False → toe left, heel right.
   const W2 = 34, H2 = 18;
   const x = cx - W2 / 2;
   const y = topY;
 
-  // Upper silhouette — per-row half-widths (creates the shoe profile).
-  // Heel side is tall; midfoot dips a bit at the topline; toe rounds down.
-  // Profile: top edge of the upper, drawn as a curve.
-  const upperTop: number[] = []; // for each column, the top-y offset (0=highest)
+  // Per-column top offset — defines upper silhouette curve.
+  // u: 0 = heel side, 1 = toe side
+  const upperTop: number[] = [];
   for (let i = 0; i < W2; i++) {
     const t = i / (W2 - 1);
-    // Position along shoe: 0 = heel, 1 = toe (or reversed if mirrored)
     const u = mirrored ? t : 1 - t;
     let top: number;
-    if (u < 0.18) {
-      // Heel collar — high, rounded
-      const k = u / 0.18;
-      top = 1 + Math.round((1 - k) * 2);
-    } else if (u < 0.45) {
-      // Ankle/midfoot dip
-      const k = (u - 0.18) / 0.27;
-      top = 3 + Math.round(Math.sin(k * Math.PI) * 1);
+    if (u < 0.05) {
+      // Heel back curve
+      const k = u / 0.05;
+      top = 4 - Math.round(k * 2);
+    } else if (u < 0.22) {
+      // Heel collar — high
+      top = 1;
+    } else if (u < 0.32) {
+      // Down from heel collar to ankle opening
+      const k = (u - 0.22) / 0.10;
+      top = 1 + Math.round(k * 4);
+    } else if (u < 0.55) {
+      // Tongue area (low) — keeps the dip so ankle opening reads
+      top = 5;
     } else if (u < 0.85) {
-      // Forefoot — gentle slope toward toe
-      const k = (u - 0.45) / 0.4;
-      top = 4 + Math.round(k * 2);
+      // Forefoot rises slightly
+      const k = (u - 0.55) / 0.30;
+      top = 5 + Math.round((1 - k) * 1);
     } else {
-      // Toe — curves down to meet sole
+      // Toe box rounds down toward the sole
       const k = (u - 0.85) / 0.15;
-      top = 6 + Math.round(k * 3);
+      top = 6 + Math.round(k * 4);
     }
     upperTop.push(top);
   }
 
-  // Fill upper body (dark gray with subtle vertical shading)
+  // Fill upper body — gray with subtle shading
   for (let i = 0; i < W2; i++) {
     const top = upperTop[i];
-    for (let j = top; j < H2 - 4; j++) {
-      // Two-tone: top half lighter, bottom darker
-      const col = j - top < 2 ? G.g35 : j > H2 - 8 ? G.g10 : G.g20;
+    for (let j = top; j < H2 - 5; j++) {
+      // Light at top of upper, darker toward sole
+      const dt = j - top;
+      const col = dt < 1 ? G.g50 : dt < 3 ? G.g30 : G.g15;
       px(c, x + i, y + j, col);
     }
-    // Upper rim highlight
-    px(c, x + i, y + top, G.g50);
   }
 
-  // Heel collar inner padding (light)
-  const heelStart = mirrored ? 0 : W2 - 7;
-  for (let i = 0; i < 6; i++) {
-    px(c, x + heelStart + i, y + upperTop[heelStart + i] + 1, G.paper);
+  // Heel collar opening — small dark oval at the top of the collar
+  const collarX = mirrored ? 4 : W2 - 11;
+  for (let i = 0; i < 7; i++) {
+    px(c, x + collarX + i, y + 2, G.ink);
+    if (i > 0 && i < 6) px(c, x + collarX + i, y + 3, G.g05);
+  }
+  // Padding rim around collar opening
+  for (let i = -1; i < 8; i++) {
+    px(c, x + collarX + i, y + 1, G.paper);
   }
 
-  // Tongue + laces area in the midfoot
-  const tongueStart = mirrored ? 8 : W2 - 16;
-  const tongueEnd = mirrored ? 16 : W2 - 8;
-  // Tongue patch — slightly lighter than upper
-  for (let i = tongueStart; i < tongueEnd; i++) {
-    for (let j = upperTop[i]; j < upperTop[i] + 6; j++) {
-      px(c, x + i, y + j, G.g30);
-    }
-  }
-  // Laces — 4 horizontal stripes across the tongue
-  for (let r = 0; r < 4; r++) {
-    const ly = y + upperTop[tongueStart] + 1 + r * 2;
-    rect(c, x + tongueStart + 1, ly, tongueEnd - tongueStart - 2, 1, G.paper);
-    px(c, x + tongueStart + 1, ly, G.g60);
-    px(c, x + tongueEnd - 2, ly, G.g60);
+  // Tongue (vertical strip in midfoot)
+  const tongueX = mirrored ? 11 : W2 - 16;
+  rect(c, x + tongueX, y + 4, 5, 6, G.g70);
+  hline(c, x + tongueX, y + 4, 5, G.paper);
+  vline(c, x + tongueX, y + 4, 6, G.g80);
+  vline(c, x + tongueX + 4, y + 4, 6, G.g50);
+
+  // Laces — 3 horizontal stripes across the tongue's tongue-flap area
+  for (let r = 0; r < 3; r++) {
+    const ly = y + 5 + r * 2;
+    rect(c, x + tongueX, ly, 5, 1, G.white);
+    // tiny eyelets
+    px(c, x + tongueX, ly, G.ink);
+    px(c, x + tongueX + 4, ly, G.ink);
   }
 
-  // ── Midsole (chunky white) ──
-  rect(c, x + 1, y + H2 - 5, W2 - 2, 3, G.paper);
-  hline(c, x + 1, y + H2 - 5, W2 - 2, G.white);
-  // Midsole curl up at toe + heel ends
-  px(c, x, y + H2 - 5, G.paper);
-  px(c, x + W2 - 1, y + H2 - 5, G.paper);
-  px(c, x, y + H2 - 4, G.paper);
-  px(c, x + W2 - 1, y + H2 - 4, G.paper);
-  // Midsole bottom shadow line
-  hline(c, x + 1, y + H2 - 3, W2 - 2, G.g70);
+  // Side panel highlight (a single subtle band along the upper)
+  const panelStart = mirrored ? 16 : 4;
+  const panelEnd = mirrored ? W2 - 4 : W2 - 16;
+  for (let i = panelStart; i < panelEnd; i++) {
+    px(c, x + i, y + upperTop[i] + 2, G.g40);
+  }
+
+  // ── Midsole (chunky white wedge) ──
+  rect(c, x, y + H2 - 5, W2, 3, G.paper);
+  hline(c, x, y + H2 - 5, W2, G.white);
+  hline(c, x, y + H2 - 3, W2, G.g80);
+  // Soft curl at heel and toe
+  px(c, x - 1, y + H2 - 4, G.paper);
+  px(c, x + W2, y + H2 - 4, G.paper);
+  // Subtle horizontal seam through the midsole
+  hline(c, x + 1, y + H2 - 4, W2 - 2, G.g90);
+
   // ── Outsole (dark rubber) ──
-  rect(c, x + 2, y + H2 - 2, W2 - 4, 2, G.g15);
-  hline(c, x + 2, y + H2 - 2, W2 - 4, G.g25);
-  // Tread blocks at the toe
-  const toeX = mirrored ? x + W2 - 5 : x + 2;
-  for (let i = 0; i < 4; i++) px(c, toeX + (mirrored ? -i : i), y + H2 - 1, G.ink);
-  // Heel tread
-  const heelTreadX = mirrored ? x + 2 : x + W2 - 5;
-  for (let i = 0; i < 4; i++) px(c, heelTreadX + i, y + H2 - 1, G.ink);
-
-  // ── Nike swoosh across the side ──
-  drawNikeSwoosh(c, x, y, W2, H2, mirrored);
+  rect(c, x + 1, y + H2 - 2, W2 - 2, 2, G.ink);
+  hline(c, x + 1, y + H2 - 2, W2 - 2, G.g20);
+  // Tread blocks across the bottom
+  for (let i = 2; i < W2 - 2; i += 4) {
+    px(c, x + i, y + H2 - 1, G.g50);
+  }
 }
 
 function drawNikeSwoosh(c: Ctx, x: number, y: number, w: number, h: number, mirrored: boolean) {
