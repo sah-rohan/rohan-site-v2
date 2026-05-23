@@ -14,36 +14,11 @@ export const DESK_BOTTOM_Y = 300;
 export type Theme = "dark" | "light";
 
 export function drawWall(c: Ctx, theme: Theme = "dark") {
-  // High-rise apartment: the entire back wall is a floor-to-ceiling window.
+  // High-rise apartment: entire back wall is a floor-to-ceiling window.
   // Dark mode  = procedural dusk Bay Bridge view.
-  // Light mode = the user's SF skyline image (preloaded as a sprite).
+  // Light mode = procedural Golden Gate sunset, filling the full wall.
   if (theme === "light") {
-    const img = (typeof window !== "undefined")
-      ? (window as Window & { __sfSkyline?: HTMLImageElement }).__sfSkyline
-      : undefined;
-    if (img && img.complete && img.naturalWidth > 0) {
-      // Preserve image aspect ratio — fit the FULL image into the wall area
-      // without zooming/cropping. Image is anchored to the bottom (so the
-      // water meets the desk top), and the remaining space above is filled
-      // with the image's top sky color so the wall reads as continuous.
-      const iw = img.naturalWidth;
-      const ih = img.naturalHeight;
-      const drawW = CW;
-      const drawH = Math.round((CW * ih) / iw);
-      const drawY = DESK_TOP_Y - drawH;
-      // Sky extension above the image — sample-ish lavender top color.
-      // (We picked #c5b3c8 from the reference; same color used in light
-      // procedural variant.)
-      if (drawY > 0) {
-        rect(c, 0, 0, CW, drawY, "#c5b3c8");
-        // soft band fade to match the image's top row
-        hline(c, 0, drawY - 1, CW, "#bca6c1");
-      }
-      c.drawImage(img, 0, drawY, drawW, drawH);
-    } else {
-      // Fallback while image loads — procedural Golden Gate
-      drawGoldenGateView(c, 0, 0, CW, DESK_TOP_Y);
-    }
+    drawGoldenGateView(c, 0, 0, CW, DESK_TOP_Y);
   } else {
     drawBayView(c, 0, 0, CW, DESK_TOP_Y);
   }
