@@ -23,13 +23,13 @@ interface Zone {
 // Hit zones — tuned to where each object lands in the 640×400 canvas.
 const ZONES: Zone[] = [
   // Tiny guitar under desk (music)
-  { id: "music",      x: 226, y: 320, w: 30,  h: 80,  label: "MUSIC" },
-  // MacBook on desk (projects)
-  { id: "projects",   x: 514, y: 200, w: 96,  h: 70,  label: "PROJECTS" },
-  // Floor bookshelf in front of desk (education)
-  { id: "education",  x: 18,  y: 200, w: 72,  h: 196, label: "EDUCATION" },
-  // Phone on desk (contact)
-  { id: "contact",    x: 112, y: 258, w: 22,  h: 44,  label: "CONTACT" },
+  { id: "music",      x: 166, y: 326, w: 30,  h: 70,  label: "MUSIC" },
+  // MacBook flat on desk (projects) — big footprint right of monitor
+  { id: "projects",   x: 470, y: 250, w: 144, h: 32,  label: "PROJECTS" },
+  // Small bookshelf under desk (education)
+  { id: "education",  x: 90,  y: 300, w: 56,  h: 96,  label: "EDUCATION" },
+  // Phone laying flat on desk (contact)
+  { id: "contact",    x: 112, y: 250, w: 18,  h: 30,  label: "CONTACT" },
   // Keyboard on desk (experience)
   { id: "experience", x: 200, y: 258, w: 172, h: 20,  label: "EXPERIENCE" },
   // Hanging shoes under desk (interests) — Nike swoosh
@@ -105,18 +105,14 @@ export default function PixelDesk() {
     }
     drawTerminalBackground(ctx, sr);
 
-    orProc("macbook", 562, DESK_TOP_Y, () => drawMacBook(ctx, 562, DESK_TOP_Y));
+    orProc("macbook", 540, DESK_TOP_Y, () => drawMacBook(ctx, 540, DESK_TOP_Y));
     orProc("keyboard", 286, DESK_TOP_Y, () => drawKeyboard(ctx, 286, DESK_TOP_Y));
-    orProc("mouse", 446, DESK_TOP_Y, () => drawMouse(ctx, 446, DESK_TOP_Y));
+    orProc("mouse", 460, DESK_TOP_Y, () => drawMouse(ctx, 460, DESK_TOP_Y));
 
-    // Floor items — bookshelf stands on the floor in front of the desk (left).
-    drawBookshelf(ctx, 18, CH - 6);
-
-    // Under-desk hanging items + tiny guitar.
-    // Hooks are attached to the underside of the desk front lip — below
-    // the desk's bottom edge (so they don't intersect mousepad/keyboard).
-    const underY = 290; // just below DESK_BOTTOM_Y (=286)
-    drawTinyGuitar(ctx, 240, CH - 8);          // tiny acoustic leaning under desk
+    // Under-desk items — all in the floor area between the desk legs.
+    drawBookshelf(ctx, 90, CH - 6);            // small bookshelf under desk (left)
+    drawTinyGuitar(ctx, 180, CH - 8);          // tiny guitar under desk
+    const underY = 290;                        // hook anchor row beneath desk lip
     drawHangingHeadphones(ctx, 360, underY);
     drawHangingShoes(ctx, 460, underY);
 

@@ -8,46 +8,57 @@ import { G, W, A } from "./palette";
 // ─────────────────────────────────────────────────────────────
 export interface ScreenRect { x: number; y: number; w: number; h: number; }
 
-// 9×9 bitten-apple silhouette. Top-left at (x, y).
-export function drawAppleLogo(c: Ctx, x: number, y: number, col: string) {
-  // Each "1" is a pixel of the logo. 9 wide × 9 tall.
-  const rows = [
-    "0001100000",
-    "0001100000",
-    "0011111100",
-    "0111111110",
-    "1111111111",
-    "1111111110",
-    "1111111100",
-    "0111111100",
-    "0011111000",
-    "0001110000",
+// Bitten-apple Apple logo. 11 wide × 13 tall (plus 3-row leaf above).
+// (x, y) is the TOP-LEFT of the apple body (leaf is drawn above at y - leafH).
+// `col` paints the logo; `bg` is the surface color used to "carve" the bite.
+export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: string) {
+  // Apple silhouette — pixel-perfect, recognizable at this size.
+  // Top has a small V-notch in the center (where stem would meet); bite is on
+  // the upper-right curve.
+  const body = [
+    ".####.#####",  // 0  V notch between top humps
+    ".##########",  // 1
+    "###########",  // 2
+    "###########",  // 3
+    "###########",  // 4
+    "###########",  // 5
+    "###########",  // 6
+    "###########",  // 7
+    "###########",  // 8
+    ".#########.",  // 9
+    "..#######..",  // 10
+    "...#####...",  // 11
+    "....###....",  // 12
   ];
-  // Add a leaf above
+  // Leaf — small angled blade extending up-right from the V notch.
   const leaf = [
-    "0000010000",
-    "0000110000",
-    "0000100000",
+    "......##...",
+    ".....##....",
+    "....##.....",
   ];
-  // Draw leaf (above the apple top)
+
+  // Paint leaf
   for (let j = 0; j < leaf.length; j++) {
     for (let i = 0; i < leaf[j].length; i++) {
-      if (leaf[j][i] === "1") px(c, x + i, y - leaf.length + j, col);
+      if (leaf[j][i] === "#") px(c, x + i, y - leaf.length + j, col);
     }
   }
-  // Draw apple body
-  for (let j = 0; j < rows.length; j++) {
-    for (let i = 0; i < rows[j].length; i++) {
-      if (rows[j][i] === "1") px(c, x + i, y + j, col);
+  // Paint body
+  for (let j = 0; j < body.length; j++) {
+    for (let i = 0; i < body[j].length; i++) {
+      if (body[j][i] === "#") px(c, x + i, y + j, col);
     }
   }
-  // Bite (subtract pixels on top-right curve)
-  px(c, x + 7, y + 2, "rgba(0,0,0,0)");
-  px(c, x + 7, y + 3, "rgba(0,0,0,0)");
-  // The bite is "removed" by drawing transparent pixels — but canvas doesn't
-  // clear that way. Instead, draw a dark notch using the wood or surface color.
-  // Caller can overlay if needed. For lid (G.g75 silver), we punch a small
-  // notch in the silhouette by overdrawing with the lid color.
+  // Bite — carve a curved notch out of the upper-right side using the
+  // surface color (so the silhouette reads as bitten).
+  if (bg) {
+    const bite: [number, number][] = [
+      [9, 3], [10, 3],
+      [8, 4], [9, 4], [10, 4],
+      [9, 5], [10, 5],
+    ];
+    for (const [i, j] of bite) px(c, x + i, y + j, bg);
+  }
 }
 
 export function drawMonitor(
@@ -134,60 +145,58 @@ export function drawTerminalBackground(c: Ctx, s: ScreenRect) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// MACBOOK — CLOSED clamshell viewed from above, sitting flat on desk.
-// Cable runs from its back edge to the monitor (external-display setup).
+// MACBOOK — closed clamshell LYING FLAT on the desk, viewed from a
+// slight forward-tilt perspective (same plane as keyboard/mouse).
+// Wide and thin so it covers a substantial chunk of desk real estate.
+// (cx, deskTopY) — cx is horizontal center, deskTopY anchors the top edge.
 // ─────────────────────────────────────────────────────────────
 export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
-  // Closed laptop, top-down view. Slim aluminum slab.
-  const w = 98, h = 64;
+  const w = 140;          // wide footprint, matches a real laptop's desk presence
+  const h = 24;           // slim — laptop lying flat
   const x = cx - w / 2;
-  const y = deskTopY + 6 - h + 8; // sits flat just behind/on desk lip
-  // Actually: a laptop laid flat takes up depth on the desk. Place it so the
-  // hinge edge is closer to the back of the desk and the front edge is
-  // toward the viewer. We render it as a flat rectangle on the desk.
-  const lidX = x;
-  const lidY = deskTopY - h + 4;
+  const y = deskTopY + 2; // sits on the desk surface, same band as keyboard
 
-  // ── Aluminum body ──
-  rect(c, lidX, lidY, w, h, G.g80);
-  // Top edge highlight (light from top-left)
-  hline(c, lidX, lidY, w, G.g95);
-  hline(c, lidX, lidY + 1, w, G.g85);
-  vline(c, lidX, lidY, h, G.g85);
-  // Bottom edge shadow (front of laptop facing viewer)
-  hline(c, lidX, lidY + h - 1, w, G.g40);
-  hline(c, lidX, lidY + h - 2, w, G.g55);
-  vline(c, lidX + w - 1, lidY, h, G.g55);
-  // Rounded corner pixels
-  px(c, lidX, lidY, G.g70);
-  px(c, lidX + w - 1, lidY, G.g60);
-  px(c, lidX, lidY + h - 1, G.g30);
-  px(c, lidX + w - 1, lidY + h - 1, G.g25);
-  // Subtle horizontal seam line where the lid meets the base (closed clamshell)
-  hline(c, lidX + 3, lidY + Math.floor(h * 0.58), w - 6, G.g60);
-  hline(c, lidX + 3, lidY + Math.floor(h * 0.58) + 1, w - 6, G.g70);
+  // ── Top surface (aluminum lid) ──
+  rect(c, x, y, w, h, G.g80);
+  // Front-edge highlight (closest to viewer, catches light)
+  hline(c, x, y, w, G.g95);
+  hline(c, x, y + 1, w, G.g85);
+  // Back-edge shadow
+  hline(c, x, y + h - 1, w, G.g40);
+  hline(c, x, y + h - 2, w, G.g55);
+  // Side edges
+  vline(c, x, y, h, G.g85);
+  vline(c, x + w - 1, y, h, G.g55);
+  // Rounded corners
+  px(c, x, y, G.g70);
+  px(c, x + w - 1, y, G.g70);
+  px(c, x, y + h - 1, G.g25);
+  px(c, x + w - 1, y + h - 1, G.g20);
+  // Clamshell seam (where lid meets base when closed) — runs along the front
+  hline(c, x + 4, y + h - 4, w - 8, G.g60);
+  hline(c, x + 4, y + h - 3, w - 8, G.g50);
 
-  // ── Apple logo, big and centered on the lid ──
-  const logoX = lidX + (w >> 1) - 5;
-  const logoY = lidY + Math.floor(h * 0.28);
-  drawAppleLogo(c, logoX, logoY, G.g25);
+  // ── Apple logo, centered ──
+  drawAppleLogo(c, cx - 5, y + 4, G.g30, G.g80);
 
-  // ── Cable port + cable arcing to monitor ──
-  // Port on back-left edge (top of laptop)
-  rect(c, lidX + 8, lidY - 1, 4, 2, G.g30);
-  px(c, lidX + 8, lidY - 1, G.g50);
+  // ── Cable port on back edge + cable to monitor ──
+  rect(c, x + 14, y + h - 1, 6, 2, G.g30);
   // Cable arcs up-left to the monitor's right side
-  const cStartX = lidX + 10;
-  const cStartY = lidY - 2;
-  const cEndX = cStartX - 90;
-  const cEndY = deskTopY - 32;
-  for (let i = 0; i <= 60; i++) {
-    const t = i / 60;
+  const cStartX = x + 17;
+  const cStartY = y + h + 1;
+  const cEndX = cStartX - 60;
+  const cEndY = deskTopY - 26;
+  for (let i = 0; i <= 70; i++) {
+    const t = i / 70;
     const xx = cStartX + (cEndX - cStartX) * t;
-    const yy = cStartY + (cEndY - cStartY) * t - Math.sin(t * Math.PI) * 8;
+    const yy = cStartY + (cEndY - cStartY) * t - Math.sin(t * Math.PI) * 6;
     px(c, xx | 0, yy | 0, G.g10);
     px(c, xx | 0, (yy | 0) + 1, G.g20);
   }
+  // Drop shadow under laptop on desk
+  hline(c, x - 1, y + h, w + 2, W.dk);
+  hline(c, x + 1, y + h + 1, w - 2, W.d1);
+  hline(c, x + 3, y + h + 2, w - 6, W.d2);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -264,14 +273,13 @@ export function drawMouse(c: Ctx, cx: number, deskTopY: number) {
 // BOOKSHELF — left of desk, against the wall.
 // Tall, multiple shelves, books of varied B&W spines with a couple amber pops.
 // ─────────────────────────────────────────────────────────────
-// Tall floor bookshelf — sits ON the floor in front of the desk.
-// (x, floorY) = bottom-left corner of the case.
+// Small bookshelf tucked UNDER the desk in the floor area between the legs.
+// (x, floorY) = bottom-left corner.
 export function drawBookshelf(c: Ctx, x: number, floorY: number) {
-  const shW = 72;
-  const shH = 196;
+  const shW = 56;
+  const shH = 92;
   const shTop = floorY - shH;
-  const deskTopY = shTop;            // retained for layout vars below
-  const shelves = 5;
+  const shelves = 3;
 
   // Outer case
   beveled(c, x, shTop, shW, shH, W.d2, W.d4, W.dk);
@@ -293,8 +301,6 @@ export function drawBookshelf(c: Ctx, x: number, floorY: number) {
     drawBookRow(c, x + 5, shelfY + 1, shW - 10, sliceH - 3, s);
   }
 
-  // Tiny rubik's cube perched on top.
-  drawDeskRubiks(c, x + shW - 18, shTop - 12);
   // Floor shadow under shelf
   rect(c, x + 2, floorY + 1, shW - 4, 1, "#050505");
   rect(c, x + 4, floorY + 2, shW - 8, 1, "#0a0a0a");
@@ -361,38 +367,37 @@ function drawDeskRubiks(c: Ctx, x: number, y: number) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PHONE — laid flat on desk, screen showing time + amber notif glow.
+// PHONE — laying flat face-up on desk, top-down view, in keyboard/laptop
+// perspective. Compact footprint that sits fully within the desk band.
 // ─────────────────────────────────────────────────────────────
 export function drawPhone(c: Ctx, cx: number, deskTopY: number) {
-  const pw = 18, ph = 36;
+  const pw = 16, ph = 26;       // compact, fits within the desk band
   const x = cx - pw / 2;
-  const y = deskTopY + 7;
-  // Body
+  const y = deskTopY + 1;        // sits on the desk surface (no overhang)
+  // Body (matte black aluminum) — drawn as rounded-corner slab
   rect(c, x, y, pw, ph, G.g10);
-  hline(c, x, y, pw, G.g25);
-  vline(c, x, y, ph, G.g20);
-  hline(c, x, y + ph - 1, pw, G.ink);
-  vline(c, x + pw - 1, y, ph, G.g05);
-  // Screen
-  rect(c, x + 2, y + 3, pw - 4, ph - 6, G.ink);
-  // Time + notif bar
-  rect(c, x + 3, y + 4, pw - 6, 2, A.amber);
-  px(c, x + 4, y + 4, A.amberDk);
-  // Lock screen wallpaper hint (dim)
-  for (let yy = 8; yy < ph - 7; yy += 3) {
-    hline(c, x + 3, y + yy, pw - 6, "#0a1218");
-  }
-  // Apple logo centered on lock screen
-  drawAppleLogo(c, x + (pw >> 1) - 5, y + Math.floor(ph * 0.4), G.g70);
-  // Notification card lower on screen
-  rect(c, x + 3, y + ph - 12, pw - 6, 5, "#1a1410");
-  hline(c, x + 3, y + ph - 12, pw - 6, A.amberDk);
-  px(c, x + 5, y + ph - 10, A.amber);
-  // Speaker slit
-  hline(c, x + (pw >> 1) - 2, y + 2, 4, G.g30);
-  // Drop shadow on desk
-  rect(c, x + 1, y + ph, pw - 1, 1, W.d2);
-  rect(c, x + 2, y + ph + 1, pw - 3, 1, W.d3);
+  // Round corners
+  px(c, x, y, G.g25);
+  px(c, x + pw - 1, y, G.g25);
+  px(c, x, y + ph - 1, G.ink);
+  px(c, x + pw - 1, y + ph - 1, G.ink);
+  // Edge highlights/shadows for a flat slab look
+  hline(c, x + 1, y, pw - 2, G.g30);
+  hline(c, x + 1, y + ph - 1, pw - 2, G.ink);
+  vline(c, x, y + 1, ph - 2, G.g25);
+  vline(c, x + pw - 1, y + 1, ph - 2, G.g05);
+  // Screen recess (dark inset)
+  rect(c, x + 2, y + 3, pw - 4, ph - 5, G.ink);
+  // Camera notch / dynamic island at top of screen
+  rect(c, x + (pw >> 1) - 3, y + 4, 6, 2, "#020203");
+  // Apple logo centered on the back-screen wallpaper
+  drawAppleLogo(c, cx - 5, y + 8, G.g60, G.ink);
+  // Single amber notification glow near bottom of screen
+  rect(c, x + 3, y + ph - 5, pw - 6, 2, A.amberDk);
+  px(c, x + 4, y + ph - 5, A.amber);
+  // Drop shadow on desk (tight — phone is thin)
+  hline(c, x + 1, y + ph, pw - 2, W.dk);
+  hline(c, x + 2, y + ph + 1, pw - 4, W.d2);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -639,34 +644,47 @@ function drawHangingShoe(c: Ctx, cx: number, topY: number, mirrored: boolean) {
 }
 
 function drawNikeSwoosh(c: Ctx, x: number, y: number, w: number, h: number, mirrored: boolean) {
-  // Swoosh: a curved comma shape across the side of the shoe.
-  // Reference: the wide end starts ~30% from heel, sweeps down then up to a point near toe.
+  // Nike swoosh — a curving comma. Wide thick body starts above the heel,
+  // sweeps down across the side, then narrows up to a long thin tail at the toe.
+  // We pixel-paint each "thickness" along a Bezier-ish path.
   const col = G.paper;
-  const colDk = G.g80;
-  const startX = mirrored ? x + w - 8 : x + 6;
-  const endX   = mirrored ? x + 2     : x + w - 4;
-  const dir    = mirrored ? -1 : 1;
+  const hl = G.white;
+  const dk = G.g70;
+  const dir = mirrored ? -1 : 1;
 
-  // Fat wide section near the heel
-  for (let i = 0; i < 6; i++) {
-    const xx = startX + i * dir;
-    rect(c, xx, y + 5 + Math.floor(i * 0.5), 1, 3 - Math.floor(i / 3), col);
-    if (i < 3) px(c, xx, y + 5 + Math.floor(i * 0.5) + 2, colDk);
+  // Anchor points along the path. Offsets are relative to (x, y) and mirrored.
+  // Format: [dx, dy, thickness]
+  const path: [number, number, number][] = [
+    [4,  4,  3],   // fat start (above heel)
+    [5,  5,  4],
+    [6,  6,  4],   // peak thickness
+    [7,  7,  4],
+    [9,  8,  3],
+    [11, 9,  3],   // bottom of curve
+    [13, 8,  2],
+    [15, 7,  2],
+    [17, 6,  2],
+    [19, 5,  1],   // tail thinning
+    [21, 4,  1],
+    [22, 3,  1],
+    [23, 2,  1],   // tail tip
+  ];
+
+  for (const [dx, dy, thick] of path) {
+    const xx = x + (mirrored ? w - dx : dx);
+    const yy = y + dy;
+    // Draw a vertical "blob" of `thick` pixels for the body
+    for (let t = 0; t < thick; t++) {
+      px(c, xx, yy + t, col);
+    }
+    // Top highlight on the upper edge
+    px(c, xx, yy - 1, dk);
+    // Bottom shadow on the lower edge
+    if (thick > 1) px(c, xx, yy + thick, dk);
   }
-  // Curve descending and tapering
-  for (let i = 0; i < 8; i++) {
-    const xx = startX + (6 + i) * dir;
-    const yy = y + 7 + Math.floor(Math.sin(i / 8 * Math.PI) * -1.2);
-    px(c, xx, yy, col);
-    if (i % 2 === 0) px(c, xx, yy + 1, colDk);
-  }
-  // Thin tail rising toward the toe
-  for (let i = 0; i < 5; i++) {
-    const xx = startX + (14 + i) * dir;
-    const yy = y + 5 - Math.floor(i * 0.4);
-    if (xx === endX && i > 2) break;
-    px(c, xx, yy, col);
-  }
+  // Small highlight on the thickest part
+  px(c, x + (mirrored ? w - 6 : 6), y + 5, hl);
+  px(c, x + (mirrored ? w - 7 : 7), y + 6, hl);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -682,11 +700,22 @@ export function drawTinyGuitar(c: Ctx, cx: number, baseY: number) {
   const hsH = 8;
   const hsTop = neckTop - hsH;
 
-  // Body (hourglass)
+  // Body (hourglass) — rounded bottom, no point.
   const profile: number[] = [];
-  for (let i = 0; i < 14; i++) profile.push(Math.round(7 + 4 * Math.sin((i / 13) * Math.PI * 0.95)));
-  for (let i = 0; i < 6; i++)  profile.push(Math.round(9 - 2 * Math.sin((i / 5) * Math.PI)));
-  for (let i = 0; i < 18; i++) profile.push(Math.round(11 * Math.sin((0.3 + i / 17 * 0.65) * Math.PI)));
+  // Upper bout — swells out
+  for (let i = 0; i < 12; i++) profile.push(Math.round(8 + 4 * Math.sin((i / 11) * Math.PI * 0.95)));
+  // Waist — pinches in
+  for (let i = 0; i < 6; i++)  profile.push(Math.round(10 - 2 * Math.sin((i / 5) * Math.PI)));
+  // Lower bout — fuller, rounded bottom (semicircle from waist down)
+  const lowerH = 20;
+  const lowerR = 12;
+  for (let i = 0; i < lowerH; i++) {
+    // ellipse half: stays wide and only rounds off at the very bottom
+    const t = i / (lowerH - 1);
+    const ellY = (t - 0.45) * (lowerR + 2); // shifts ellipse vertically
+    const v = Math.sqrt(Math.max(0, 1 - (ellY * ellY) / ((lowerR + 2) * (lowerR + 2))));
+    profile.push(Math.round(lowerR * v));
+  }
 
   for (let j = 0; j < bodyH; j++) {
     const halfW = profile[j] || 0;
