@@ -35,6 +35,8 @@ const ZONES: Zone[] = [
   { id: "experience", x: 178, y: 258, w: 124, h: 18,  label: "EXPERIENCE" },
   // Hanging shoes under desk (interests)
   { id: "interests",  x: 408, y: 286, w: 88,  h: 60,  label: "INTERESTS" },
+  // Hanging headphones under desk (now-playing / Apple Music placeholder)
+  { id: "nowplaying", x: 318, y: 286, w: 56,  h: 56,  label: "♫ NOW PLAYING" },
 ];
 
 // Monitor center — true horizontal center of the canvas.
@@ -471,16 +473,92 @@ function SectionModal({ id, onClose }: { id: SectionId; onClose: () => void }) {
           <span className="ml-3 font-mono text-[11px] tracking-widest text-neutral-500 uppercase">{s.cmd}</span>
         </div>
         <div className="flex-1 overflow-y-auto px-8 sm:px-12 py-10 font-mono">
-          <h1
-            className="text-3xl sm:text-5xl font-semibold tracking-tight mb-6"
-            style={{ color: s.accent }}
-          >
-            {s.title}
-          </h1>
-          <pre className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">
-            {s.body}
-          </pre>
+          {id === "nowplaying" ? (
+            <NowPlayingCard />
+          ) : (
+            <>
+              <h1
+                className="text-3xl sm:text-5xl font-semibold tracking-tight mb-6"
+                style={{ color: s.accent }}
+              >
+                {s.title}
+              </h1>
+              <pre className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">
+                {s.body}
+              </pre>
+            </>
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// NowPlayingCard — Apple Music–style now-playing UI, intentionally
+// hardcoded as a placeholder. Wire up MusicKit JS later:
+//
+//   1. Sign up for Apple Music Developer access + generate a JWT.
+//   2. Load MusicKit JS: <script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" />
+//   3. await window.MusicKit.configure({ developerToken: "...", app: { name, build } });
+//      const music = window.MusicKit.getInstance();
+//      const item = music.nowPlayingItem;
+//   4. Replace the constants below with reactive state from music.addEventListener("nowPlayingItemDidChange", ...).
+// ─────────────────────────────────────────────────────────────
+function NowPlayingCard() {
+  // Placeholder data — swap with live MusicKit state later.
+  const track = {
+    title: "Holocene",
+    artist: "Bon Iver",
+    album: "For Emma, Forever Ago",
+    durationSec: 336,
+    currentSec: 154,
+  };
+  const pct = (track.currentSec / track.durationSec) * 100;
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  return (
+    <div className="flex flex-col items-center gap-6 sm:gap-8 px-2">
+      {/* Album art placeholder — gradient block */}
+      <div
+        className="w-44 h-44 sm:w-56 sm:h-56 rounded-2xl shadow-2xl"
+        style={{
+          background:
+            "linear-gradient(135deg, #2a3a5e 0%, #6a4080 45%, #c8506a 100%)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0 80px rgba(255,255,255,0.04)",
+        }}
+      />
+      {/* Track meta */}
+      <div className="text-center w-full">
+        <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+          {track.title}
+        </div>
+        <div className="text-base text-neutral-400 mt-1">{track.artist}</div>
+        <div className="text-xs text-neutral-500 mt-0.5 uppercase tracking-widest">
+          {track.album}
+        </div>
+      </div>
+      {/* Progress bar */}
+      <div className="w-full max-w-sm">
+        <div className="h-1 bg-neutral-800 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${pct}%`, background: "#fa233b" }}
+          />
+        </div>
+        <div className="flex justify-between text-xs text-neutral-500 mt-1.5 tabular-nums">
+          <span>{fmt(track.currentSec)}</span>
+          <span>-{fmt(track.durationSec - track.currentSec)}</span>
+        </div>
+      </div>
+      {/* Transport controls — visual only */}
+      <div className="flex items-center gap-8 text-white">
+        <button className="text-2xl opacity-80 hover:opacity-100 transition" aria-label="previous">⏮</button>
+        <button className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center text-2xl hover:scale-105 transition" aria-label="play/pause">▶</button>
+        <button className="text-2xl opacity-80 hover:opacity-100 transition" aria-label="next">⏭</button>
+      </div>
+      {/* Apple Music link */}
+      <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-600 mt-4">
+        powered by apple music · soon
       </div>
     </div>
   );

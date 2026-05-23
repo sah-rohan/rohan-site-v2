@@ -4,7 +4,8 @@ export type SectionId =
   | "education"
   | "contact"
   | "experience"
-  | "interests";
+  | "interests"
+  | "nowplaying";
 
 export interface Section {
   id: SectionId;
@@ -129,5 +130,22 @@ reading
 
 building little things
 that don't have to ship.`,
+  },
+  nowplaying: {
+    id: "nowplaying",
+    title: "NOW PLAYING",
+    cmd: "music.app --now-playing",
+    accent: "#fa233b",
+    // The modal body is replaced by a custom UI (NowPlayingCard); this text
+    // is just the fallback. Wire up Apple MusicKit JS later to hydrate it.
+    body: `── currently listening ──
+[ track ]   Holocene
+[ artist ]  Bon Iver
+[ album ]   For Emma, Forever Ago
+[ state ]   ▶ playing · 2:34 / 5:36
+
+(TODO: integrate Apple Music API
+       via MusicKit JS to make
+       this live.)`,
   },
 };

@@ -595,39 +595,43 @@ export function drawChargerCable(
   laptopPortX: number, laptopPortY: number,
   deskTopY: number, deskRightX: number,
 ) {
-  // Side x = just outside the desk's right edge, so the vertical run is
-  // visually "around" the desk, not through it.
-  const sideX = deskRightX + 5;
+  // Smooth cable routing: brick → up around the desk's right edge → onto
+  // the desk top → into the laptop port. Drawn as a single continuous curve
+  // composed of waypoints, blending with quadratic interpolation between
+  // them so the cable never has visible kinks.
+  const sideX = deskRightX + 4;
 
-  // ── 1. Brick → desk-bottom level (curving up + right) ──
-  const segAEndY = deskTopY + 48; // just above brick, below desk
-  for (let yy = brickTopY; yy >= segAEndY; yy--) {
-    const t = (brickTopY - yy) / (brickTopY - segAEndY);
-    const xx = Math.round(brickCx + (sideX - brickCx) * t);
-    px(c, xx, yy, G.paper);
-    if ((yy & 3) === 0) px(c, xx, yy - 1, G.g75);
+  // Waypoints (canvas coords). Cable passes through these in order.
+  const pts: [number, number][] = [
+    [brickCx,      brickTopY],            // brick top
+    [brickCx + 6,  brickTopY - 14],       // slight rise + curve right
+    [sideX,        deskTopY + 38],        // outside desk, mid-vertical
+    [sideX,        deskTopY - 1],         // top of desk side edge
+    [sideX - 4,    deskTopY + 4],         // curl over desk corner onto top
+    [laptopPortX + 8, deskTopY + 7],      // approach laptop port
+    [laptopPortX,  laptopPortY],          // plug
+  ];
+
+  // Render each segment as a smooth interpolated line.
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[i + 1];
+    const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) + 1;
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      // Quadratic ease so adjacent segments blend without sharp kinks.
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const xx = Math.round(x0 + (x1 - x0) * e);
+      const yy = Math.round(y0 + (y1 - y0) * e);
+      px(c, xx, yy, G.paper);
+      // Soft shadow underline so the cable reads as round.
+      px(c, xx, yy + 1, G.g60);
+    }
   }
-  // ── 2. Vertical rise along right side of desk (outside the wood) ──
-  for (let yy = segAEndY; yy >= deskTopY - 2; yy--) {
-    px(c, sideX, yy, G.paper);
-    if ((yy & 3) === 0) px(c, sideX, yy, G.g75);
-  }
-  // Small curl over the desk top edge
-  px(c, sideX - 1, deskTopY - 2, G.paper);
-  // ── 3. Across desk top to the laptop port ──
-  const segCStartX = sideX - 1;
-  const segCStartY = deskTopY + 2;
-  for (let i = 0; i <= Math.abs(segCStartX - laptopPortX); i++) {
-    const t = i / Math.abs(segCStartX - laptopPortX);
-    const xx = Math.round(segCStartX + (laptopPortX - segCStartX) * t);
-    const yy = Math.round(segCStartY + (laptopPortY - segCStartY) * t
-                          + Math.sin(t * Math.PI) * 2);
-    px(c, xx, yy, G.paper);
-    if ((i & 3) === 0) px(c, xx, yy + 1, G.g75);
-  }
-  // ── Plug at the laptop port ──
-  rect(c, laptopPortX, laptopPortY - 1, 3, 3, G.g25);
-  hline(c, laptopPortX, laptopPortY - 1, 3, G.g50);
+  // Plug head at the laptop port — small black USB-C connector.
+  rect(c, laptopPortX - 1, laptopPortY - 1, 3, 3, G.g15);
+  hline(c, laptopPortX - 1, laptopPortY - 1, 3, G.g35);
+  px(c, laptopPortX, laptopPortY, G.g45);
 }
 
 // ─────────────────────────────────────────────────────────────
