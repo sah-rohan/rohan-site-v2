@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk } from "./pixel/scene";
-import { drawGuitar } from "./pixel/guitar";
 import {
   drawMonitor, drawTerminalBackground, drawMacBook, drawKeyboard, drawMouse,
   drawBookshelf, drawPhone,
@@ -33,6 +32,8 @@ const ZONES: Zone[] = [
   { id: "contact",    x: 112, y: 250, w: 18,  h: 30,  label: "CONTACT" },
   // Keyboard on desk (experience)
   { id: "experience", x: 178, y: 258, w: 124, h: 18,  label: "EXPERIENCE" },
+  // Mouse on pad (skills) — Rohan.json
+  { id: "skills",     x: 326, y: 258, w: 50,  h: 22,  label: "SKILLS" },
   // Hanging shoes under desk (interests)
   { id: "interests",  x: 408, y: 286, w: 88,  h: 60,  label: "INTERESTS" },
   // Hanging headphones under desk (now-playing / Apple Music placeholder)
@@ -60,9 +61,11 @@ export default function PixelDesk() {
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
-  const monitorSize = isCompact
-    ? { screenW: 340, screenH: 210 }
-    : { screenW: 220, screenH: 140 };
+  const monitorSize = useMemo(() => (
+    isCompact
+      ? { screenW: 340, screenH: 210 }
+      : { screenW: 220, screenH: 140 }
+  ), [isCompact]);
 
   // Weather — toggleable live rain in the window background.
   const [raining, setRaining] = useState(false);
@@ -76,7 +79,7 @@ export default function PixelDesk() {
   const [terminal, setTerminal] = useState({
     history: [
       "welcome to rohan@portfolio.sh — type a command or click anything",
-      "try: projects · education · music · contact · experience · interests · help · ls",
+      "try: skills · projects · education · experience · music · contact · interests · nowplaying · help",
     ],
     currentCmd: "",
     cursorOn: true,
@@ -172,7 +175,10 @@ export default function PixelDesk() {
       ctx.lineWidth = 1;
       ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
     }
-  }, [hover, screenRect, theme, wallImageReady, isCompact, monitorSize]);
+    // wallImageReady is intentionally a dep so the canvas redraws when the
+    // SF skyline image finishes loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hover, screenRect, theme, wallImageReady, monitorSize]);
 
   // Repaint when hover changes OR sprites finish loading.
   useEffect(() => { repaint(); }, [repaint, spritesReady]);
@@ -191,12 +197,14 @@ export default function PixelDesk() {
     if (!cmd) return;
     // Section aliases
     const ALIASES: Record<string, SectionId> = {
-      music: "music", guitar: "music",
+      music: "music", guitar: "music", piano: "music", sing: "music",
       projects: "projects", proj: "projects", ls: "projects",
       education: "education", edu: "education", school: "education", books: "education",
       contact: "contact", email: "contact", phone: "contact",
       experience: "experience", exp: "experience", work: "experience", resume: "experience",
       interests: "interests", hobbies: "interests", run: "interests", running: "interests",
+      skills: "skills", tech: "skills", stack: "skills",
+      nowplaying: "nowplaying", playing: "nowplaying", "now-playing": "nowplaying", track: "nowplaying",
     };
     if (ALIASES[cmd]) {
       const id = ALIASES[cmd];
@@ -325,7 +333,7 @@ export default function PixelDesk() {
             if (z) playType(z.id);
           }}
         />
-        {raining && <RainOverlay />}
+        {raining && <RainOverlay enableThunder={theme === "dark"} />}
         {screenRect && (
           <TerminalOverlay rect={screenRect} state={terminal} />
         )}
@@ -370,7 +378,7 @@ export default function PixelDesk() {
 // portion of the viewport (the "outside the window" area, above the desk).
 // Each drop is a thin slanted line with random column, delay, and speed.
 // ─────────────────────────────────────────────────────────────
-function RainOverlay() {
+function RainOverlay({ enableThunder }: { enableThunder: boolean }) {
   const drops = useMemo(() => {
     return Array.from({ length: 90 }, (_, i) => {
       const r1 = ((i * 9301 + 49297) % 233280) / 233280;
@@ -407,7 +415,7 @@ function RainOverlay() {
           />
         ))}
       </div>
-      <Thunder />
+      {enableThunder && <Thunder />}
     </>
   );
 }
@@ -658,35 +666,158 @@ function SectionModal({ id, onClose }: { id: SectionId; onClose: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// NowPlayingCard — Apple Music–style now-playing UI, intentionally
-// hardcoded as a placeholder. Wire up MusicKit JS later:
+// NowPlayingCard — Apple Music–style player. Reads the developer JWT from
+// NEXT_PUBLIC_APPLE_MUSIC_TOKEN at runtime. If present, loads MusicKit JS,
+// authorizes, and binds to the live now-playing item. If absent, shows a
+// static "currently on rotation" preview (Fast Car / Beautiful).
 //
-//   1. Sign up for Apple Music Developer access + generate a JWT.
-//   2. Load MusicKit JS: <script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" />
-//   3. await window.MusicKit.configure({ developerToken: "...", app: { name, build } });
-//      const music = window.MusicKit.getInstance();
-//      const item = music.nowPlayingItem;
-//   4. Replace the constants below with reactive state from music.addEventListener("nowPlayingItemDidChange", ...).
+// To go live:
+//   1. Apple Developer → MusicKit identifier + key.
+//   2. Sign a JWT with that key (kid = key id, iss = team id, alg = ES256).
+//   3. Drop the JWT into .env.local as NEXT_PUBLIC_APPLE_MUSIC_TOKEN.
+//   4. Restart the dev server.
 // ─────────────────────────────────────────────────────────────
-function NowPlayingCard() {
-  // Placeholder data — swap with live MusicKit state later.
-  const track = {
-    title: "Holocene",
-    artist: "Bon Iver",
-    album: "For Emma, Forever Ago",
-    durationSec: 336,
-    currentSec: 154,
+interface NowPlayingState {
+  title: string;
+  artist: string;
+  album: string;
+  artworkUrl?: string;
+  durationSec: number;
+  currentSec: number;
+  isPlaying: boolean;
+  live: boolean;
+}
+
+// MusicKit global typings — minimal surface we use here.
+type MusicKitNS = {
+  configure: (opts: { developerToken: string; app: { name: string; build: string } }) => Promise<unknown>;
+  getInstance: () => MusicKitInstance;
+};
+type MusicKitInstance = {
+  authorize: () => Promise<string>;
+  unauthorize: () => Promise<void>;
+  nowPlayingItem?: NowPlayingItem | null;
+  isPlaying: boolean;
+  currentPlaybackTime: number;
+  currentPlaybackDuration: number;
+  addEventListener: (event: string, cb: () => void) => void;
+  removeEventListener: (event: string, cb: () => void) => void;
+  play: () => Promise<void>;
+  pause: () => void;
+  skipToNextItem: () => void;
+  skipToPreviousItem: () => void;
+};
+type NowPlayingItem = {
+  title?: string;
+  artistName?: string;
+  albumName?: string;
+  artworkURL?: string;
+  attributes?: {
+    artwork?: { url?: string };
+    name?: string;
+    artistName?: string;
+    albumName?: string;
   };
-  const pct = (track.currentSec / track.durationSec) * 100;
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+function useNowPlaying(): NowPlayingState {
+  const fallback: NowPlayingState = {
+    title: "Fast Car",
+    artist: "Tracy Chapman",
+    album: "Tracy Chapman",
+    durationSec: 286,
+    currentSec: 89,
+    isPlaying: true,
+    live: false,
+  };
+  const [state, setState] = useState<NowPlayingState>(fallback);
+
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_APPLE_MUSIC_TOKEN;
+    if (!token) return; // stay on static preview
+
+    let music: MusicKitInstance | null = null;
+    let cancelled = false;
+
+    const loadScript = () =>
+      new Promise<void>((resolve, reject) => {
+        if (typeof window === "undefined") return reject(new Error("ssr"));
+        const w = window as unknown as { MusicKit?: MusicKitNS };
+        if (w.MusicKit) return resolve();
+        const s = document.createElement("script");
+        s.src = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error("musickit script load failed"));
+        document.head.appendChild(s);
+      });
+
+    const syncFromInstance = () => {
+      if (!music || cancelled) return;
+      const item = music.nowPlayingItem;
+      if (!item) return;
+      const attr = item.attributes || {};
+      const artworkRaw = attr.artwork?.url ?? item.artworkURL;
+      const artworkUrl = artworkRaw
+        ? artworkRaw.replace("{w}", "400").replace("{h}", "400").replace("{f}", "jpg")
+        : undefined;
+      setState({
+        title: attr.name ?? item.title ?? "—",
+        artist: attr.artistName ?? item.artistName ?? "",
+        album: attr.albumName ?? item.albumName ?? "",
+        artworkUrl,
+        durationSec: Math.round(music.currentPlaybackDuration || 0),
+        currentSec: Math.round(music.currentPlaybackTime || 0),
+        isPlaying: !!music.isPlaying,
+        live: true,
+      });
+    };
+
+    (async () => {
+      try {
+        await loadScript();
+        const w = window as unknown as { MusicKit?: MusicKitNS };
+        if (!w.MusicKit) return;
+        await w.MusicKit.configure({
+          developerToken: token,
+          app: { name: "rohan.sah portfolio", build: "1.0" },
+        });
+        music = w.MusicKit.getInstance();
+        syncFromInstance();
+        music.addEventListener("nowPlayingItemDidChange", syncFromInstance);
+        music.addEventListener("playbackStateDidChange", syncFromInstance);
+        music.addEventListener("playbackTimeDidChange", syncFromInstance);
+      } catch (err) {
+        console.warn("[apple music] init failed:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (music) {
+        music.removeEventListener("nowPlayingItemDidChange", syncFromInstance);
+        music.removeEventListener("playbackStateDidChange", syncFromInstance);
+        music.removeEventListener("playbackTimeDidChange", syncFromInstance);
+      }
+    };
+  }, []);
+
+  return state;
+}
+
+function NowPlayingCard() {
+  const track = useNowPlaying();
+  const pct = track.durationSec > 0 ? (track.currentSec / track.durationSec) * 100 : 0;
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s % 60)).padStart(2, "0")}`;
   return (
     <div className="flex flex-col items-center gap-6 sm:gap-8 px-2">
-      {/* Album art placeholder — gradient block */}
+      {/* Album art */}
       <div
-        className="w-44 h-44 sm:w-56 sm:h-56 rounded-2xl shadow-2xl"
+        className="w-44 h-44 sm:w-56 sm:h-56 rounded-2xl shadow-2xl overflow-hidden"
         style={{
-          background:
-            "linear-gradient(135deg, #2a3a5e 0%, #6a4080 45%, #c8506a 100%)",
+          background: track.artworkUrl
+            ? `url(${track.artworkUrl}) center/cover no-repeat`
+            : "linear-gradient(135deg, #2a3a5e 0%, #6a4080 45%, #c8506a 100%)",
           boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0 80px rgba(255,255,255,0.04)",
         }}
       />
@@ -696,9 +827,11 @@ function NowPlayingCard() {
           {track.title}
         </div>
         <div className="text-base text-neutral-400 mt-1">{track.artist}</div>
-        <div className="text-xs text-neutral-500 mt-0.5 uppercase tracking-widest">
-          {track.album}
-        </div>
+        {track.album && (
+          <div className="text-xs text-neutral-500 mt-0.5 uppercase tracking-widest">
+            {track.album}
+          </div>
+        )}
       </div>
       {/* Progress bar */}
       <div className="w-full max-w-sm">
@@ -710,18 +843,20 @@ function NowPlayingCard() {
         </div>
         <div className="flex justify-between text-xs text-neutral-500 mt-1.5 tabular-nums">
           <span>{fmt(track.currentSec)}</span>
-          <span>-{fmt(track.durationSec - track.currentSec)}</span>
+          <span>-{fmt(Math.max(0, track.durationSec - track.currentSec))}</span>
         </div>
       </div>
-      {/* Transport controls — visual only */}
+      {/* Transport controls */}
       <div className="flex items-center gap-8 text-white">
         <button className="text-2xl opacity-80 hover:opacity-100 transition" aria-label="previous">⏮</button>
-        <button className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center text-2xl hover:scale-105 transition" aria-label="play/pause">▶</button>
+        <button className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center text-2xl hover:scale-105 transition" aria-label="play/pause">
+          {track.isPlaying ? "⏸" : "▶"}
+        </button>
         <button className="text-2xl opacity-80 hover:opacity-100 transition" aria-label="next">⏭</button>
       </div>
-      {/* Apple Music link */}
+      {/* Status footer */}
       <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-600 mt-4">
-        powered by apple music · soon
+        {track.live ? "live · apple music" : "preview · drop NEXT_PUBLIC_APPLE_MUSIC_TOKEN to go live"}
       </div>
     </div>
   );

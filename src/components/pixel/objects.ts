@@ -365,6 +365,7 @@ function drawBookRow(c: Ctx, x: number, y: number, w: number, h: number, seed: n
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function drawDeskRubiks(c: Ctx, x: number, y: number) {
   // Tiny rubik's cube as a decorative trinket on top of the bookshelf.
   // Mostly grayscale with two color accent stickers.
@@ -849,6 +850,7 @@ function drawHangingShoe(c: Ctx, cx: number, topY: number, mirrored: boolean) {
   }
 }
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 function drawNikeSwoosh(c: Ctx, x: number, y: number, w: number, h: number, mirrored: boolean) {
   // Nike swoosh — a curving comma. Wide thick body starts above the heel,
   // sweeps down across the side, then narrows up to a long thin tail at the toe.
@@ -856,7 +858,6 @@ function drawNikeSwoosh(c: Ctx, x: number, y: number, w: number, h: number, mirr
   const col = G.paper;
   const hl = G.white;
   const dk = G.g70;
-  const dir = mirrored ? -1 : 1;
 
   // Anchor points along the path. Offsets are relative to (x, y) and mirrored.
   // Format: [dx, dy, thickness]
@@ -892,6 +893,7 @@ function drawNikeSwoosh(c: Ctx, x: number, y: number, w: number, h: number, mirr
   px(c, x + (mirrored ? w - 6 : 6), y + 5, hl);
   px(c, x + (mirrored ? w - 7 : 7), y + 6, hl);
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 // ─────────────────────────────────────────────────────────────
 // TINY GUITAR UNDER DESK — small leaning acoustic.

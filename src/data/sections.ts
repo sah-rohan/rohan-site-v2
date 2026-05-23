@@ -5,7 +5,8 @@ export type SectionId =
   | "contact"
   | "experience"
   | "interests"
-  | "nowplaying";
+  | "nowplaying"
+  | "skills";
 
 export interface Section {
   id: SectionId;
@@ -16,25 +17,72 @@ export interface Section {
 }
 
 export const SECTIONS: Record<SectionId, Section> = {
+  // ─── SKILLS (mouse) ─── shaped like a Rohan.json file ───
+  skills: {
+    id: "skills",
+    title: "SKILLS",
+    cmd: "cat ~/Rohan.json",
+    accent: "#7aa8d8",
+    body: `A Software Engineer
+A CS student
+
+Rohan.json
+{
+  Age: "19",
+  Current_Role: [
+    "Student SWE @ John Deere",
+    "Research Assistant @ UCSF",
+    "3rd Year CS student @ ISU"
+  ],
+  Languages: [
+    "TypeScript",
+    "Python",
+    "Java",
+    "C / C++",
+    "Rust",
+    "Go"
+  ],
+  Libraries: [
+    "SpringBoot",
+    "React",
+    "Node.js"
+  ],
+  Cloud_DevOps: [
+    "AWS",
+    "Azure",
+    "IaC",
+    "Jenkins"
+  ],
+  Hobbies: [
+    "Tennis", "Running", "Music"
+  ]
+}`,
+  },
+
+  // ─── MUSIC (tiny guitar) ─── currently playing + influences ───
   music: {
     id: "music",
     title: "MUSIC",
     cmd: "cat ~/music.md",
     accent: "#b8302a",
-    body: `passion / guitar
+    body: `i play / i make
 ────────────────────────────
-Acoustic guitar — 6 years.
-Fingerpicking, jazz voicings,
-slow ballads at 1am.
+guitar · piano · singing · songwriting
 
-Currently learning
-  · Lover, You Should've Come Over
-  · Holocene (open tuning)
+on heavy rotation lately
+  · Tracy Chapman    — Fast Car
+  · Bazzi            — Beautiful
 
-On rotation
-  · John Mayer · Bon Iver
-  · Nick Drake · Phoebe Bridgers`,
+who i grew up on
+  · Shawn Mendes
+  · Justin Bieber
+  · Michael Jackson
+  · Tracy Chapman
+
+→ click the headphones for now playing`,
   },
+
+  // ─── PROJECTS (macbook) ─── full project list ───
   projects: {
     id: "projects",
     title: "PROJECTS",
@@ -42,53 +90,76 @@ On rotation
     accent: "#d8d2c4",
     body: `selected work
 ────────────────────────────
-01  portfolio-v2      [active]
-02  rubiks-solver     [shipped]
-03  run-tracker       [shipped]
-04  apollo            [internal]
-05  music-tab-gen     [wip]
+Federated Learning Platform
+  Privacy-preserving federated ML across edge devices.
+  Rust · C++ · Python · PyTorch · Prometheus · Distributed Systems
 
-stack
-  React · Next · Node · Python
+AI Polls
+  AI-powered voting platform with RAG chatbot + custom email auth.
+  SpringBoot · OpenAI · ONNX · Git · System Design · SQL
+
+PremierCashBack
+  AI-driven credit card cashback optimizer.
+  React · React Native · Tailwind · ClerkAPI · StripeAPI · Postgres · OpenAI
+
+MemoraAI
+  AI-powered flashcard platform.
+  React · Next.js · OpenAI · Tailwind · Clerk · Stripe · Firebase
+
+Asteroid Detection
+  NASA-classified NEO tracker with RAG-powered space hazard insights.
+  React · Next.js · NASA API · MUI · OpenAI · Pinecone · Python
+
+MongoScraper
+  Web scraper persisting URL data into MongoDB for API-free dev.
+  React · Node.js · MongoDB · Puppeteer
+
+ISU Professor Recommender
+  RAG tool matching professors to research interests.
+  React · Next.js · Pinecone · Python · RAG · Firebase
+
+CS 362 (OOAD) Capstone
+  40+ exhaustive use cases + custom JSON parser to model a university.
+  Java · Agile · UML · System Design · Git
+
+LeetCode Tracker
+  AI-powered tracker w/ leaderboard + personalized challenges
+  (200+ visits · 28+ problems solved by users).
+  TypeScript · React · MongoDB · Clerk · Gemini · LeetCode API
 
 → github.com/sah-rohan`,
   },
+
+  // ─── EDUCATION (bookshelf) ─── ISU + coursework ───
   education: {
     id: "education",
     title: "EDUCATION",
     cmd: "cat ~/education.md",
     accent: "#c8a85a",
-    body: `school
+    body: `Iowa State University
+Aug 2023 – Dec 2026
 ────────────────────────────
 B.S. Computer Science
-Iowa State University
-expected 2027
+Minor in Applied Mathematics
 
-coursework
-  · Algorithms · Systems
-  · Databases · Distributed
-  · Linear Algebra
-  · Software Engineering
-
-honors
-  · Dean's List
-  · CS scholarship`,
+Coursework
+  Math 265   Multivariable Calculus
+  Math 267   Differential Equations
+  COM S 227  Object-Oriented Programming
+  COM S 228  Data Structures
+  COM S 230  Discrete Math for Computing
+  COM S 309  Software Development Practices
+  COM S 311  Analysis of Algorithms
+  COM S 321  Computer Architecture & Org
+  COM S 327  Advanced C / C++
+  COM S 331  Theory of Computing
+  COM S 342  Principles of Programming Languages
+  COM S 362  Object-Oriented Analysis & Design
+  COM S 363  Introduction to Databases
+  COM S 419  Software Testing`,
   },
-  contact: {
-    id: "contact",
-    title: "CONTACT",
-    cmd: "open contact.app",
-    accent: "#7aa8d8",
-    body: `get in touch
-────────────────────────────
-rohan@example.com
 
-github.com/sah-rohan
-linkedin.com/in/rohan-sah
-
-open to collabs, coffee,
-and interesting problems.`,
-  },
+  // ─── EXPERIENCE (keyboard) ─── work history ───
   experience: {
     id: "experience",
     title: "EXPERIENCE",
@@ -96,18 +167,60 @@ and interesting problems.`,
     accent: "#e0e0e0",
     body: `work history
 ────────────────────────────
-2025  Software Intern
-      Apollo · Summer
-      embedded · firmware · ml
+John Deere                                Present
+  Student Software Engineer
+  🚜  Full-stack SWE @ John Deere Financial
 
-2024  Research Assistant
-      Iowa State CS Lab
+UCSF                                      Present
+  Undergraduate Research Assistant
+  🩺  Digital twins for healthcare
 
-2023  Teaching Assistant
-      CS 101 · Iowa State
+Ivy College of Business                   Present
+  Software Engineering Research Assistant
+  🧳  Business research + full-stack SWE for the public good
 
-→ resume.pdf`,
+Indu Sah Foundation                       Present
+  Founding Software Engineer
+  🌏  Building the site for a Nepalese-American humanitarian non-profit
+
+Iowa State University                     Spring 2025
+  Undergraduate Teaching Assistant
+  📚  TA for CS 1270 (Python problem solving)
+
+Iowa Legislature                          Summer 2024
+  Data Science Intern for an Iowa Senator
+  📊  Historic voter data automation
+
+Gladiators NYC                            Summer 2024
+  Software Engineering Intern
+  📈  Automated product price + availability updates
+
+Iowa State University                     Fall 23 / Spring 24
+  Undergraduate Research Assistant
+  🛰️  Defense of LiDAR sensors via deep learning
+
+MindZone Learning                         Summer 22 / Summer 23
+  Academic Tutor
+  📝  Math · reading · science`,
   },
+
+  // ─── CONTACT (phone) ───
+  contact: {
+    id: "contact",
+    title: "CONTACT",
+    cmd: "open contact.app",
+    accent: "#7aa8d8",
+    body: `get in touch
+────────────────────────────
+email     rohan.sah@example.com
+github    github.com/sah-rohan
+linkedin  linkedin.com/in/rohan-sah
+
+open to collabs, coffee,
+and interesting problems.`,
+  },
+
+  // ─── INTERESTS (shoes) ───
   interests: {
     id: "interests",
     title: "INTERESTS",
@@ -116,36 +229,36 @@ and interesting problems.`,
     body: `outside the screen
 ────────────────────────────
 running
-  · 5K PR     22:14
-  · half PR   1:54:30
+  · 5K PR     17:00
   · ankeny trail regular
 
 rubik's cube
-  · 3x3 avg   28s
-  · learning OLL
+  · 3×3 best  28s
 
-reading
-  · Calvino · Murakami
-  · Hofstadter
+reading right now
+  · System Design Interview — Alex Xu
+  · The Let Them Theory     — Mel Robbins
 
 building little things
 that don't have to ship.`,
   },
+
+  // ─── NOW PLAYING (headphones) — live Apple Music integration ───
   nowplaying: {
     id: "nowplaying",
     title: "NOW PLAYING",
     cmd: "music.app --now-playing",
     accent: "#fa233b",
-    // The modal body is replaced by a custom UI (NowPlayingCard); this text
-    // is just the fallback. Wire up Apple MusicKit JS later to hydrate it.
+    // Modal renders a custom UI; this is just terminal-typing fallback.
     body: `── currently listening ──
-[ track ]   Holocene
-[ artist ]  Bon Iver
-[ album ]   For Emma, Forever Ago
-[ state ]   ▶ playing · 2:34 / 5:36
+[ track ]   Fast Car
+[ artist ]  Tracy Chapman
+[ album ]   Tracy Chapman
+[ state ]   ▶ playing
 
-(TODO: integrate Apple Music API
-       via MusicKit JS to make
-       this live.)`,
+(Apple MusicKit JS integration
+ pending — drop the developer
+ token into NEXT_PUBLIC_APPLE_MUSIC_TOKEN
+ and the modal goes live.)`,
   },
 };

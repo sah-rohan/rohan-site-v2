@@ -1,4 +1,4 @@
-import { Ctx, rect, hline, vline, px, stipple, beveled } from "./draw";
+import { Ctx, rect, hline, vline, px, stipple } from "./draw";
 import { G, W, A } from "./palette";
 
 // Canvas logical size — chunky pixels, scaled up to fill viewport.
@@ -39,6 +39,7 @@ function drawMullion(c: Ctx, x: number) {
 }
 
 // No-op kept for API compat — the bay view is now baked into drawWall.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function drawWindow(_c: Ctx) { /* intentionally empty */ }
 
 // Palette swatches for the two times-of-day. Same composition, different colors.
