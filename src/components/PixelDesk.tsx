@@ -42,7 +42,11 @@ const MONITOR_CX = 320;
 type Theme = "dark" | "light";
 
 export default function PixelDesk() {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "dark";
+    const param = new URLSearchParams(window.location.search).get("theme");
+    return param === "light" ? "light" : "dark";
+  });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenRectRef = useRef<ScreenRect | null>(null);
   const [screenRect, setScreenRect] = useState<ScreenRect | null>(null);
@@ -72,7 +76,7 @@ export default function PixelDesk() {
     if (!ctx) return;
     ctx.imageSmoothingEnabled = false;
 
-    drawWall(ctx); // floor-to-ceiling Bay Bridge window
+    drawWall(ctx, theme); // dark: Bay Bridge dusk; light: Golden Gate sunset
     drawFloor(ctx);
     drawDesk(ctx);
 
@@ -132,7 +136,7 @@ export default function PixelDesk() {
       ctx.lineWidth = 1;
       ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
     }
-  }, [hover, screenRect]);
+  }, [hover, screenRect, theme]);
 
   // Repaint when hover changes OR sprites finish loading.
   useEffect(() => { repaint(); }, [repaint, spritesReady]);
@@ -314,17 +318,6 @@ export default function PixelDesk() {
       )}
       {/* Theme toggle — bottom-right, à la Alex Young */}
       <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === "dark" ? "light" : "dark")} />
-      {/* Light-mode wash overlay — quickest path to a "light mode" feel without
-          rewriting every palette ramp. Lifts midtones, warms the sky. */}
-      {theme === "light" && (
-        <div
-          className="absolute inset-0 pointer-events-none mix-blend-screen"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(255,245,220,0.35) 0%, rgba(255,230,180,0.22) 40%, rgba(150,170,210,0.15) 70%, rgba(80,100,140,0.05) 100%)",
-          }}
-        />
-      )}
     </>
   );
 }

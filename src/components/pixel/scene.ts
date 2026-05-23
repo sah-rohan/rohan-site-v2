@@ -11,11 +11,16 @@ export const DESK_TOP_Y = 252;
 export const DESK_FRONT_Y = 282;
 export const DESK_BOTTOM_Y = 300;
 
-export function drawWall(c: Ctx) {
+export type Theme = "dark" | "light";
+
+export function drawWall(c: Ctx, theme: Theme = "dark") {
   // High-rise apartment: the entire back wall is a floor-to-ceiling
-  // window onto the Bay Bridge. The previous flat wall is replaced by
-  // the bay view directly so the room feels like a SF apartment.
-  drawBayView(c, 0, 0, CW, DESK_TOP_Y);
+  // window. Dark mode = dusk Bay Bridge. Light mode = Golden Gate sunset.
+  if (theme === "light") {
+    drawGoldenGateView(c, 0, 0, CW, DESK_TOP_Y);
+  } else {
+    drawBayView(c, 0, 0, CW, DESK_TOP_Y);
+  }
 
   // Window frame — thin dark steel mullions framing the room edges.
   // Top header
@@ -251,6 +256,272 @@ function drawCableArc(
     const yMid = (y1 + y2) / 2 + (lowY - (y1 + y2) / 2);
     const y = omt * omt * y1 + 2 * omt * t * yMid + t * t * y2;
     px(c, x | 0, y | 0, col);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// GOLDEN GATE SUNSET VIEW (light theme).
+// Lavender pink sky, sunset-lit SF skyline (warm orange east-facing
+// faces, dark west-facing shadows), dark navy bay, and a prominent
+// red Golden Gate Bridge with one big foreground tower on the left
+// and a smaller far tower in mid-distance, suspension cables sweeping
+// across the frame. Inspired by the reference image.
+// ─────────────────────────────────────────────────────────────
+export function drawGoldenGateView(c: Ctx, x: number, y: number, w: number, h: number) {
+  // Palette
+  const skyHi   = "#c5b3c8";  // pale lavender top
+  const skyLo   = "#b9a3bd";  // dustier lavender near horizon
+  const haze    = "#d4b3a8";  // warm pinkish horizon haze
+  const water   = "#1f2a44";
+  const waterDk = "#141a30";
+  const hill    = "#2a1f3a";
+  const hillLt  = "#3a2c4a";
+  const bldgWarmA = "#f4ad6a";  // sunlit building face (bright)
+  const bldgWarmB = "#d49860";  // sunlit shadow
+  const bldgDark  = "#1c1424";
+  const bldgMid   = "#3a2a3a";
+  const bridgeRed = "#c8302a";
+  const bridgeRedDk = "#8a1a14";
+  const bridgeRedHl = "#e85040";
+
+  // ── Sky (lavender gradient with warm horizon) ──
+  for (let yy = 0; yy < h; yy++) {
+    const t = yy / h;
+    let col: string;
+    if (t < 0.55) {
+      col = blend(skyHi, skyLo, t / 0.55);
+    } else if (t < 0.66) {
+      const k = (t - 0.55) / 0.11;
+      col = blend(skyLo, haze, k);
+    } else {
+      // Below horizon — water area
+      const k = (t - 0.66) / 0.34;
+      col = blend(water, waterDk, k);
+    }
+    hline(c, x, y + yy, w, col);
+  }
+  // Subtle horizontal sky banding (clouds / haze striations)
+  for (let yy = 4; yy < h * 0.55; yy += 5) {
+    if ((yy * 13) % 7 < 3) {
+      stipple(c, x, y + yy, w, 1, "#a89aae", 0.5, yy);
+    }
+  }
+
+  // ── Distant hills (Marin headlands behind bridge) ──
+  const horizonY = y + Math.floor(h * 0.55);
+  drawDistantHills(c, x, horizonY, w, hill, hillLt);
+
+  // ── SF skyline (right half) ──
+  const skyBase = y + Math.floor(h * 0.62);
+  drawSunsetSkyline(c, x + Math.floor(w * 0.42), skyBase, Math.floor(w * 0.58),
+                    bldgWarmA, bldgWarmB, bldgDark, bldgMid);
+
+  // ── Golden Gate Bridge ──
+  drawGoldenGate(c, x, y, w, h, bridgeRed, bridgeRedDk, bridgeRedHl);
+
+  // ── Water — soft horizontal glints ──
+  for (let yy = horizonY + 2; yy < y + h; yy++) {
+    if (yy % 3 === 0) {
+      let r = (yy * 41 + 7) % 1000;
+      for (let k = 0; k < 3; k++) {
+        r = (r * 9301 + 49297) % 233280;
+        const xx = x + (r % w);
+        if ((r & 7) === 0) px(c, xx, yy, "#3a4a6a");
+      }
+    }
+  }
+}
+
+function drawDistantHills(c: Ctx, x: number, baseY: number, w: number, hill: string, hillLt: string) {
+  // Soft purple hills rolling along the horizon.
+  for (let i = 0; i < w; i++) {
+    const t = i / w;
+    // Compose two sine waves for an irregular ridge line
+    const h1 = Math.sin(t * Math.PI * 2.2) * 6;
+    const h2 = Math.sin(t * Math.PI * 5 + 1.3) * 3;
+    const top = Math.round(baseY - 14 - h1 - h2);
+    for (let yy = top; yy < baseY; yy++) {
+      const dt = (yy - top) / (baseY - top);
+      const col = dt < 0.18 ? hillLt : hill;
+      px(c, x + i, yy, col);
+    }
+    // Highlight a single pixel at the very top (catching warm light)
+    px(c, x + i, top, "#5a4060");
+  }
+}
+
+function drawSunsetSkyline(
+  c: Ctx, x: number, baseY: number, w: number,
+  warmA: string, warmB: string, dark: string, mid: string,
+) {
+  // Sunset-lit skyline. Each building has a sunlit east face (warm) and a
+  // shadow west face (dark). Buildings layered front-to-back via z bands.
+  let s = 137;
+  for (let i = 0; i < w; ) {
+    s = (s * 9301 + 49297) % 233280;
+    const bw = 5 + Math.floor((s / 233280) * 12);
+    s = (s * 9301 + 49297) % 233280;
+    const bh = 8 + Math.floor((s / 233280) * 24);
+    // Occasional tall accent (Transamerica / Salesforce style)
+    const tallBoost = (s & 31) === 0 ? bh + 18 : ((s & 15) === 0 ? bh + 8 : 0);
+    const fullH = bh + tallBoost;
+    if (i + bw > w) break;
+    // Background buildings are darker; foreground (sometimes) warm-lit.
+    const isLit = ((s >> 5) & 1) === 0;
+    const faceLit = isLit ? warmA : mid;
+    const faceShadow = isLit ? warmB : dark;
+    // Most of building is shadow side, narrow warm strip on the right.
+    rect(c, x + i, baseY - fullH, bw, fullH, dark);
+    // Sunlit right-edge band (varies in width per building)
+    const litW = Math.max(1, Math.floor(bw * (0.18 + (s & 7) / 28)));
+    rect(c, x + i + bw - litW, baseY - fullH, litW, fullH, faceLit);
+    // Soft mid-tone between
+    if (bw > litW + 1) {
+      vline(c, x + i + bw - litW - 1, baseY - fullH, fullH, faceShadow);
+    }
+    // Top edge highlight (rooftop catches light)
+    hline(c, x + i, baseY - fullH, bw, blend(faceLit, "#ffffff", 0.3));
+    // Faint warm-lit window pixels on the sunlit side (rare)
+    let r = s;
+    for (let j = 0; j < fullH - 4; j += 3) {
+      for (let k = bw - litW; k < bw - 1; k += 2) {
+        r = (r * 9301 + 49297) % 233280;
+        if ((r / 233280) < 0.08) {
+          px(c, x + i + k, baseY - fullH + j + 2, blend(warmA, "#ffe0a0", 0.6));
+        }
+      }
+    }
+    // Antenna on tall buildings
+    if (tallBoost > 12) {
+      vline(c, x + i + (bw >> 1), baseY - fullH - 5, 5, dark);
+      px(c, x + i + (bw >> 1), baseY - fullH - 5, blend(warmA, "#ffffff", 0.3));
+    }
+    i += bw;
+  }
+  // Horizon sliver where skyline meets water
+  hline(c, x, baseY, w, "#2a1c3a");
+  hline(c, x, baseY + 1, w, "#181024");
+}
+
+function drawGoldenGate(
+  c: Ctx, x: number, y: number, w: number, h: number,
+  red: string, redDk: string, redHl: string,
+) {
+  // Foreground tower (LARGE) on the left + a smaller far tower mid-right.
+  // Suspension main cable curves between them; side cables anchor to deck ends.
+  // The deck (roadway) runs horizontally roughly across the lower-middle.
+
+  const deckY = y + Math.floor(h * 0.74);
+  const fgTowerX = x + Math.floor(w * 0.13);
+  const fgTowerW = 28;
+  const fgTowerTop = y + 6;
+  const farTowerX = x + Math.floor(w * 0.62);
+  const farTowerW = 8;
+  const farTowerTop = y + Math.floor(h * 0.30);
+
+  // ── Main suspension cable (curves between tower tops, sags to mid-deck) ──
+  const sagY = y + Math.floor(h * 0.62);
+  drawCableArc(c, fgTowerX + (fgTowerW >> 1), fgTowerTop,
+               farTowerX + (farTowerW >> 1), farTowerTop, sagY, red);
+
+  // ── Side cable on the LEFT (from off-screen-left up to fg tower top) ──
+  // Sweeps down to the off-frame anchorage.
+  drawCableArc(c, x, deckY - 4,
+               fgTowerX + (fgTowerW >> 1), fgTowerTop, deckY - 4, red);
+  // ── Side cable on the RIGHT (from far tower down to off-frame right) ──
+  drawCableArc(c, farTowerX + (farTowerW >> 1), farTowerTop,
+               x + w + 4, deckY - 1, deckY - 1, red);
+
+  // ── Vertical suspender cables between main cable and deck ──
+  for (let xx = fgTowerX + fgTowerW + 4; xx < farTowerX; xx += 6) {
+    const t = (xx - fgTowerX) / (farTowerX - fgTowerX);
+    const cy = fgTowerTop + (farTowerTop - fgTowerTop) * t
+             - Math.sin(t * Math.PI) * (sagY - Math.min(fgTowerTop, farTowerTop) - 8);
+    // Actually use a quadratic to match the arc:
+    const omt = 1 - t;
+    const yMid = (fgTowerTop + farTowerTop) / 2 + (sagY - (fgTowerTop + farTowerTop) / 2);
+    const top = Math.round(omt * omt * fgTowerTop + 2 * omt * t * yMid + t * t * farTowerTop);
+    void cy;
+    for (let yy = top + 1; yy < deckY - 2; yy++) {
+      if (yy % 2 === 0) px(c, xx, yy, red);
+    }
+  }
+
+  // ── Deck (roadway) — thin horizontal red line ──
+  hline(c, x, deckY - 1, w, redDk);
+  rect(c, x, deckY, w, 2, red);
+  hline(c, x, deckY + 2, w, redDk);
+
+  // ── Far tower (small, behind/distance) ──
+  drawGGTower(c, farTowerX, farTowerTop, deckY, farTowerW, red, redDk, redHl, true);
+
+  // ── Foreground tower (BIG, dominant on the left) ──
+  drawGGTower(c, fgTowerX, fgTowerTop, deckY, fgTowerW, red, redDk, redHl, false);
+}
+
+function drawGGTower(
+  c: Ctx, x: number, topY: number, deckY: number, w: number,
+  red: string, redDk: string, redHl: string, small: boolean,
+) {
+  const h = deckY - topY;
+  // Main shaft
+  rect(c, x, topY, w, h, red);
+  vline(c, x, topY, h, redHl);
+  vline(c, x + w - 1, topY, h, redDk);
+  hline(c, x, topY, w, redHl);
+  // Soft top cap
+  hline(c, x + 1, topY - 1, w - 2, red);
+  px(c, x + 1, topY - 2, red);
+  px(c, x + w - 2, topY - 2, red);
+
+  if (!small) {
+    // Foreground tower — add the iconic arched openings and cross-brace structure.
+    // Two arched portals stacked vertically.
+    const portalW = w - 8;
+    const portalH = Math.floor(h * 0.16);
+    const p1Y = topY + Math.floor(h * 0.32);
+    const p2Y = topY + Math.floor(h * 0.58);
+    drawArchPortal(c, x + 4, p1Y, portalW, portalH, redDk);
+    drawArchPortal(c, x + 4, p2Y, portalW, portalH, redDk);
+    // Cross-brace bands (thicker horizontal strips between portals)
+    const braceY1 = p1Y - 4;
+    const braceY2 = p1Y + portalH + 2;
+    const braceY3 = p2Y - 4;
+    const braceY4 = p2Y + portalH + 2;
+    for (const by of [braceY1, braceY2, braceY3, braceY4]) {
+      rect(c, x, by, w, 2, redDk);
+      hline(c, x, by, w, red);
+    }
+    // Slight tapering: thin out top of tower by darkening sides
+    for (let yy = topY; yy < topY + 6; yy++) {
+      px(c, x, yy, redDk);
+      px(c, x + w - 1, yy, redDk);
+    }
+  } else {
+    // Far tower — simpler, just one small portal hint
+    rect(c, x + 1, topY + Math.floor(h * 0.4), w - 2, 3, redDk);
+  }
+
+  // Pier (below deck — short fade into water)
+  for (let i = 0; i < 6; i++) {
+    rect(c, x, deckY + i, w, 1, blend(redDk, "#0a0a18", i / 6));
+  }
+}
+
+function drawArchPortal(c: Ctx, x: number, y: number, w: number, h: number, dk: string) {
+  // Carve an arch-shaped dark portal out of the tower.
+  for (let j = 0; j < h; j++) {
+    const t = j / (h - 1);
+    // Top half of arch: narrower at very top, widens to full width at midpoint
+    let curW: number;
+    if (t < 0.35) {
+      const k = t / 0.35;
+      curW = Math.round(w * (0.55 + 0.45 * Math.sin(k * Math.PI / 2)));
+    } else {
+      curW = w;
+    }
+    const xx = x + Math.floor((w - curW) / 2);
+    rect(c, xx, y + j, curW, 1, dk);
   }
 }
 
