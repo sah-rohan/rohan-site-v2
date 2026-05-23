@@ -69,6 +69,18 @@ export default function PixelDesk() {
     preloadSprites(SPRITE_IDS).then(() => setSpritesReady(true));
   }, []);
 
+  // Preload the SF skyline image used as the light-mode wall background.
+  // Stashed on window so the scene drawer can reach it.
+  const [wallImageReady, setWallImageReady] = useState(false);
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      (window as Window & { __sfSkyline?: HTMLImageElement }).__sfSkyline = img;
+      setWallImageReady(true);
+    };
+    img.src = "/sf-skyline.webp";
+  }, []);
+
   const repaint = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -136,7 +148,7 @@ export default function PixelDesk() {
       ctx.lineWidth = 1;
       ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
     }
-  }, [hover, screenRect, theme]);
+  }, [hover, screenRect, theme, wallImageReady]);
 
   // Repaint when hover changes OR sprites finish loading.
   useEffect(() => { repaint(); }, [repaint, spritesReady]);
