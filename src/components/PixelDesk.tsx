@@ -6,7 +6,7 @@ import { drawGuitar } from "./pixel/guitar";
 import {
   drawMonitor, drawTerminalBackground, drawMacBook, drawKeyboard, drawMouse,
   drawBookshelf, drawPhone,
-  drawHangingHeadphones, drawHangingShoes, drawTinyGuitar,
+  drawHangingHeadphones, drawHangingShoes, drawTinyGuitar, drawChargerBrick,
   ScreenRect,
 } from "./pixel/objects";
 import { preloadSprites, drawSprite, SPRITE_DEFS } from "./pixel/sprites";
@@ -39,7 +39,10 @@ const ZONES: Zone[] = [
 // Monitor center — true horizontal center of the canvas.
 const MONITOR_CX = 320;
 
+type Theme = "dark" | "light";
+
 export default function PixelDesk() {
+  const [theme, setTheme] = useState<Theme>("dark");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenRectRef = useRef<ScreenRect | null>(null);
   const [screenRect, setScreenRect] = useState<ScreenRect | null>(null);
@@ -109,10 +112,11 @@ export default function PixelDesk() {
     drawTerminalBackground(ctx, sr);
 
     // Layout on desk surface (x band 60-590), L→R:
-    //   keyboard (cx=240, x=178-302)  mouse (cx=350, x=329-371)  macbook (cx=470, x=422-518)
     orProc("keyboard", 240, DESK_TOP_Y, () => drawKeyboard(ctx, 240, DESK_TOP_Y));
     orProc("mouse",    350, DESK_TOP_Y, () => drawMouse(ctx, 350, DESK_TOP_Y));
-    orProc("macbook",  470, DESK_TOP_Y, () => drawMacBook(ctx, 470, DESK_TOP_Y));
+    orProc("macbook",  450, DESK_TOP_Y, () => drawMacBook(ctx, 450, DESK_TOP_Y));
+    // Charger brick & wall outlet on the floor to the right of the desk.
+    drawChargerBrick(ctx, 530, DESK_TOP_Y);
 
     // Under-desk items — all in the floor area between the desk legs.
     drawBookshelf(ctx, 90, CH - 6);            // small bookshelf under desk (left)
@@ -291,7 +295,45 @@ export default function PixelDesk() {
       {active && (
         <SectionModal id={active} onClose={() => setActive(null)} />
       )}
+      {/* Theme toggle — bottom-right, à la Alex Young */}
+      <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === "dark" ? "light" : "dark")} />
+      {/* Light-mode wash overlay — quickest path to a "light mode" feel without
+          rewriting every palette ramp. Lifts midtones, warms the sky. */}
+      {theme === "light" && (
+        <div
+          className="absolute inset-0 pointer-events-none mix-blend-screen"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,245,220,0.35) 0%, rgba(255,230,180,0.22) 40%, rgba(150,170,210,0.15) 70%, rgba(80,100,140,0.05) 100%)",
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-label="Toggle light/dark mode"
+      className="absolute bottom-4 right-4 z-30 w-10 h-10 rounded-full flex items-center justify-center
+                 border border-neutral-700 bg-neutral-900/70 hover:bg-neutral-800 transition
+                 backdrop-blur-sm text-neutral-200 shadow-lg"
+    >
+      {theme === "dark" ? (
+        // Sun icon — switch to light
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      ) : (
+        // Moon icon — switch to dark
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+        </svg>
+      )}
+    </button>
   );
 }
 

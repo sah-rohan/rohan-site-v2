@@ -6,9 +6,10 @@ export const CW = 640;
 export const CH = 400;
 
 // Horizon line between wall and desk top.
+// Front lip dropped so the desk surface band reads higher in frame.
 export const DESK_TOP_Y = 252;
-export const DESK_FRONT_Y = 268;
-export const DESK_BOTTOM_Y = 286;
+export const DESK_FRONT_Y = 282;
+export const DESK_BOTTOM_Y = 300;
 
 export function drawWall(c: Ctx) {
   // High-rise apartment: the entire back wall is a floor-to-ceiling

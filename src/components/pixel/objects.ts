@@ -14,13 +14,16 @@ export interface ScreenRect { x: number; y: number; w: number; h: number; }
 // (x, y) is TOP-LEFT of the apple body (leaf is above).
 // `col` paints the logo; `bg` carves the bite (pass the surface color).
 export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: string) {
+  // Body — two distinct top lobes FULLY DISCONNECTED at the top, growing
+  // and merging mid-body, with a clear right-side bite carved out, and a
+  // soft inward curl at the very bottom (apple's natural narrowing).
   const body = [
-    "....##.##....",  // 0   two top humps with V notch
-    "...########..",  // 1
-    "..##########.",  // 2
-    ".############",  // 3
+    "....##...##..",  // 0   two humps, 3-px gap between
+    "...####.####.",  // 1   humps grow
+    "..#####.#####",  // 2
+    ".############",  // 3   merging — V-notch starts to close
     ".############",  // 4
-    "#############",  // 5   widest
+    "#############",  // 5
     "#############",  // 6
     "#############",  // 7
     "#############",  // 8
@@ -28,9 +31,9 @@ export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: st
     ".###########.",  // 10
     ".###########.",  // 11
     "..#########..",  // 12
-    "..#########..",  // 13  bottom slight inward
-    "...#######...",  // 14
-    "....#####....",  // 15  rounded base
+    "..#########..",  // 13
+    "...#######...",  // 14  narrows
+    "....#####....",  // 15  bottom curl in (the "indent" effect)
   ];
   // Leaf — small diagonal blade rising up-right from the right-hand hump.
   const leaf = [
@@ -51,15 +54,16 @@ export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: st
       if (body[j][i] === "#") px(c, x + i, y + j, col);
     }
   }
-  // Bite — concave notch carved out of the upper-right side. The bite is
-  // what makes the logo unmistakable.
+  // Bite — deep concave notch carved out of the upper-right side. The bite
+  // is what makes the logo unmistakable.
   if (bg) {
     const bite: [number, number][] = [
-      [10, 4], [11, 4], [12, 4],
+      [11, 4], [12, 4],
       [9, 5],  [10, 5], [11, 5], [12, 5],
-      [9, 6],  [10, 6], [11, 6], [12, 6],
-      [10, 7], [11, 7], [12, 7],
-      [11, 8], [12, 8],
+      [8, 6],  [9, 6],  [10, 6], [11, 6], [12, 6],
+      [9, 7],  [10, 7], [11, 7], [12, 7],
+      [10, 8], [11, 8], [12, 8],
+      [11, 9], [12, 9],
     ];
     for (const [i, j] of bite) px(c, x + i, y + j, bg);
   }
@@ -155,41 +159,48 @@ export function drawTerminalBackground(c: Ctx, s: ScreenRect) {
 // (cx, deskTopY) — cx is horizontal center, deskTopY anchors the top edge.
 // ─────────────────────────────────────────────────────────────
 export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
-  const w = 100;          // smaller footprint to fit alongside keyboard + mouse
-  const h = 28;           // gives the apple logo room to read
+  const w = 100;
+  const h = 28;
   const x = cx - w / 2;
-  const y = deskTopY + 2; // sits on the desk surface, same band as keyboard
+  const y = deskTopY + 2;
 
-  // ── Top surface (aluminum lid) ──
-  rect(c, x, y, w, h, G.g80);
-  // Front-edge highlight (closest to viewer, catches light)
-  hline(c, x, y, w, G.g95);
-  hline(c, x, y + 1, w, G.g85);
+  // ── Space Black aluminum lid ──
+  // Real "Space Black" is a very dark gray with subtle warm undertone.
+  const sb     = "#16161a";
+  const sbLt   = "#22222a";
+  const sbHl   = "#2c2c34";
+  const sbDk   = "#08080a";
+
+  rect(c, x, y, w, h, sb);
+  // Front-edge highlight
+  hline(c, x, y, w, sbHl);
+  hline(c, x, y + 1, w, sbLt);
   // Back-edge shadow
-  hline(c, x, y + h - 1, w, G.g40);
-  hline(c, x, y + h - 2, w, G.g55);
-  // Side edges
-  vline(c, x, y, h, G.g85);
-  vline(c, x + w - 1, y, h, G.g55);
+  hline(c, x, y + h - 1, w, sbDk);
+  hline(c, x, y + h - 2, w, "#0c0c10");
+  vline(c, x, y, h, sbLt);
+  vline(c, x + w - 1, y, h, sbDk);
   // Rounded corners
-  px(c, x, y, G.g70);
-  px(c, x + w - 1, y, G.g70);
-  px(c, x, y + h - 1, G.g25);
-  px(c, x + w - 1, y + h - 1, G.g20);
-  // Clamshell seam (where lid meets base when closed) — runs along the front
-  hline(c, x + 4, y + h - 4, w - 8, G.g60);
-  hline(c, x + 4, y + h - 3, w - 8, G.g50);
+  px(c, x, y, sb);
+  px(c, x + w - 1, y, sb);
+  px(c, x, y + h - 1, sbDk);
+  px(c, x + w - 1, y + h - 1, sbDk);
+  // Clamshell seam along the front
+  hline(c, x + 4, y + h - 4, w - 8, sbHl);
+  hline(c, x + 4, y + h - 3, w - 8, sbLt);
 
-  // ── Apple logo, centered ──
-  drawAppleLogo(c, cx - 6, y + 5, G.g30, G.g80);
+  // ── Apple logo, centered — light silvery against the space-black ──
+  drawAppleLogo(c, cx - 6, y + 5, "#d0d0d4", sb);
 
-  // ── Cable port on back edge + cable to monitor ──
-  rect(c, x + 14, y + h - 1, 6, 2, G.g30);
-  // Cable arcs up-left to the monitor's right side
-  const cStartX = x + 17;
-  const cStartY = y + h + 1;
-  const cEndX = cStartX - 60;
-  const cEndY = deskTopY - 26;
+  // ── Monitor cable: from LEFT side of laptop up to monitor's right side ──
+  // Port on left edge (USB-C/Thunderbolt)
+  rect(c, x - 1, y + 8, 2, 4, "#3a3a40");
+  px(c, x - 1, y + 8, "#5a5a60");
+  // Cable arcs up and to the left toward monitor
+  const cStartX = x - 2;
+  const cStartY = y + 10;
+  const cEndX = cStartX - 50;
+  const cEndY = deskTopY - 18;
   for (let i = 0; i <= 70; i++) {
     const t = i / 70;
     const xx = cStartX + (cEndX - cStartX) * t;
@@ -197,6 +208,26 @@ export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
     px(c, xx | 0, yy | 0, G.g10);
     px(c, xx | 0, (yy | 0) + 1, G.g20);
   }
+
+  // ── Charger cable from RIGHT side ──
+  // Port on right edge (MagSafe-ish)
+  rect(c, x + w - 1, y + 8, 2, 4, "#3a3a40");
+  px(c, x + w, y + 8, "#5a5a60");
+  // Cable trails off to the right, going down and off-desk to the brick
+  // (brick is drawn separately by drawChargerBrick).
+  const ccStartX = x + w + 1;
+  const ccStartY = y + 10;
+  const ccEndX = ccStartX + 40;
+  const ccEndY = deskTopY + 30;
+  for (let i = 0; i <= 60; i++) {
+    const t = i / 60;
+    const xx = ccStartX + (ccEndX - ccStartX) * t;
+    const yy = ccStartY + (ccEndY - ccStartY) * t + Math.sin(t * Math.PI) * 6;
+    // Charger cable is white (Apple-style)
+    px(c, xx | 0, yy | 0, G.paper);
+    if (i % 4 === 0) px(c, xx | 0, (yy | 0) + 1, G.g75);
+  }
+
   // Drop shadow under laptop on desk
   hline(c, x - 1, y + h, w + 2, W.dk);
   hline(c, x + 1, y + h + 1, w - 2, W.d1);
@@ -515,6 +546,55 @@ export function drawFan(c: Ctx, cx: number, deskTopY: number) {
   // Center hub
   rect(c, headCx - 2, headCy - 2, 4, 4, G.g50);
   px(c, headCx, headCy, G.g70);
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHARGER BRICK + wall outlet. White Apple-style brick plugged into a small
+// outlet on the wall (or window mullion). Cable trails up to the laptop.
+// (x, y) = top-left of brick rectangle on the wall.
+// ─────────────────────────────────────────────────────────────
+export function drawChargerBrick(c: Ctx, cx: number, deskTopY: number) {
+  // Brick sits on the floor area to the right of the desk.
+  const brickW = 18, brickH = 22;
+  const bx = cx - brickW / 2;
+  const by = deskTopY + 60;
+  // Brick body
+  rect(c, bx, by, brickW, brickH, G.paper);
+  hline(c, bx, by, brickW, G.white);
+  vline(c, bx, by, brickH, G.g95);
+  hline(c, bx, by + brickH - 1, brickW, G.g55);
+  vline(c, bx + brickW - 1, by, brickH, G.g70);
+  // Rounded corners
+  px(c, bx, by, G.g80);
+  px(c, bx + brickW - 1, by, G.g70);
+  px(c, bx, by + brickH - 1, G.g50);
+  px(c, bx + brickW - 1, by + brickH - 1, G.g40);
+  // Subtle Apple logo embossed on brick (very small, gray)
+  drawAppleLogo(c, cx - 6, by + 5, G.g70, G.paper);
+  // ── Two prongs going into a small outlet just below ──
+  const oy = by + brickH;
+  rect(c, cx - 4, oy, 2, 3, G.g30);
+  rect(c, cx + 2, oy, 2, 3, G.g30);
+  // Wall outlet plate (small rectangle behind the prongs)
+  rect(c, cx - 8, oy + 2, 16, 8, G.g25);
+  hline(c, cx - 8, oy + 2, 16, G.g40);
+  vline(c, cx - 8, oy + 2, 8, G.g35);
+  hline(c, cx - 8, oy + 9, 16, G.g10);
+  vline(c, cx + 7, oy + 2, 8, G.g10);
+  // Outlet slots
+  rect(c, cx - 4, oy + 3, 2, 4, G.ink);
+  rect(c, cx + 2, oy + 3, 2, 4, G.ink);
+  // Ground hole below
+  rect(c, cx - 1, oy + 7, 2, 2, G.ink);
+  // Charger cable coming out the TOP of the brick (loops up to laptop)
+  for (let i = 0; i < 30; i++) {
+    const t = i / 30;
+    const x = (cx + Math.sin(t * Math.PI) * 3) | 0;
+    const y = by - i;
+    if (y < deskTopY + 28) break;
+    px(c, x, y, G.paper);
+    if (i % 4 === 0) px(c, x, y - 1, G.g75);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
