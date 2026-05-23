@@ -151,8 +151,8 @@ export function drawTerminalBackground(c: Ctx, s: ScreenRect) {
 // (cx, deskTopY) — cx is horizontal center, deskTopY anchors the top edge.
 // ─────────────────────────────────────────────────────────────
 export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
-  const w = 140;          // wide footprint, matches a real laptop's desk presence
-  const h = 24;           // slim — laptop lying flat
+  const w = 96;           // smaller footprint to fit alongside keyboard + mouse
+  const h = 22;           // slim — laptop lying flat
   const x = cx - w / 2;
   const y = deskTopY + 2; // sits on the desk surface, same band as keyboard
 
@@ -203,7 +203,7 @@ export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
 // KEYBOARD — slim aluminum, in front of monitor on desk.
 // ─────────────────────────────────────────────────────────────
 export function drawKeyboard(c: Ctx, cx: number, deskTopY: number) {
-  const kw = 168, kh = 13;
+  const kw = 124, kh = 12;
   const kx = cx - kw / 2;
   const ky = deskTopY + 6;
   // Aluminum frame
@@ -214,8 +214,8 @@ export function drawKeyboard(c: Ctx, cx: number, deskTopY: number) {
   vline(c, kx + kw - 1, ky, kh, G.g50);
   // Recessed key area
   rect(c, kx + 3, ky + 2, kw - 6, kh - 5, G.g35);
-  // Keys — 5 rows × ~17 cols
-  const rows = 5, cols = 22;
+  // Keys — 4 rows × 16 cols (smaller, still reads as keyboard)
+  const rows = 4, cols = 16;
   const keyW = Math.floor((kw - 8) / cols);
   const keyH = Math.floor((kh - 6) / rows);
   for (let r = 0; r < rows; r++) {
@@ -239,8 +239,8 @@ export function drawKeyboard(c: Ctx, cx: number, deskTopY: number) {
 // MOUSE + MOUSEPAD — right of keyboard.
 // ─────────────────────────────────────────────────────────────
 export function drawMouse(c: Ctx, cx: number, deskTopY: number) {
-  // Blue mousepad
-  const padW = 60, padH = 22;
+  // Blue mousepad — smaller
+  const padW = 42, padH = 18;
   const px0 = cx - padW / 2;
   const py0 = deskTopY + 8;
   rect(c, px0, py0, padW, padH, "#1a2a44");

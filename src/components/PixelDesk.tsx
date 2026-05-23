@@ -24,14 +24,14 @@ interface Zone {
 const ZONES: Zone[] = [
   // Tiny guitar under desk (music)
   { id: "music",      x: 166, y: 326, w: 30,  h: 70,  label: "MUSIC" },
-  // MacBook flat on desk (projects) — big footprint right of monitor
-  { id: "projects",   x: 470, y: 250, w: 144, h: 32,  label: "PROJECTS" },
+  // MacBook flat on desk (projects)
+  { id: "projects",   x: 420, y: 252, w: 100, h: 28,  label: "PROJECTS" },
   // Small bookshelf under desk (education)
   { id: "education",  x: 90,  y: 300, w: 56,  h: 96,  label: "EDUCATION" },
   // Phone laying flat on desk (contact)
   { id: "contact",    x: 112, y: 250, w: 18,  h: 30,  label: "CONTACT" },
   // Keyboard on desk (experience)
-  { id: "experience", x: 200, y: 258, w: 172, h: 20,  label: "EXPERIENCE" },
+  { id: "experience", x: 178, y: 258, w: 124, h: 18,  label: "EXPERIENCE" },
   // Hanging shoes under desk (interests) — Nike swoosh
   { id: "interests",  x: 432, y: 286, w: 60,  h: 60,  label: "INTERESTS" },
 ];
@@ -105,9 +105,11 @@ export default function PixelDesk() {
     }
     drawTerminalBackground(ctx, sr);
 
-    orProc("macbook", 540, DESK_TOP_Y, () => drawMacBook(ctx, 540, DESK_TOP_Y));
-    orProc("keyboard", 286, DESK_TOP_Y, () => drawKeyboard(ctx, 286, DESK_TOP_Y));
-    orProc("mouse", 460, DESK_TOP_Y, () => drawMouse(ctx, 460, DESK_TOP_Y));
+    // Layout on desk surface (x band 60-590), L→R:
+    //   keyboard (cx=240, x=178-302)  mouse (cx=350, x=329-371)  macbook (cx=470, x=422-518)
+    orProc("keyboard", 240, DESK_TOP_Y, () => drawKeyboard(ctx, 240, DESK_TOP_Y));
+    orProc("mouse",    350, DESK_TOP_Y, () => drawMouse(ctx, 350, DESK_TOP_Y));
+    orProc("macbook",  470, DESK_TOP_Y, () => drawMacBook(ctx, 470, DESK_TOP_Y));
 
     // Under-desk items — all in the floor area between the desk legs.
     drawBookshelf(ctx, 90, CH - 6);            // small bookshelf under desk (left)
