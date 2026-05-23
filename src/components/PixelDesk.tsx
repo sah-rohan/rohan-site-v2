@@ -32,8 +32,8 @@ const ZONES: Zone[] = [
   { id: "contact",    x: 112, y: 250, w: 18,  h: 30,  label: "CONTACT" },
   // Keyboard on desk (experience)
   { id: "experience", x: 178, y: 258, w: 124, h: 18,  label: "EXPERIENCE" },
-  // Hanging shoes under desk (interests) — Nike swoosh
-  { id: "interests",  x: 432, y: 286, w: 60,  h: 60,  label: "INTERESTS" },
+  // Hanging shoes under desk (interests)
+  { id: "interests",  x: 408, y: 286, w: 88,  h: 60,  label: "INTERESTS" },
 ];
 
 // Monitor center — true horizontal center of the canvas.
@@ -122,8 +122,8 @@ export default function PixelDesk() {
     drawBookshelf(ctx, 90, CH - 6);            // small bookshelf under desk (left)
     drawTinyGuitar(ctx, 180, CH - 8);          // tiny guitar under desk
     const underY = 290;                        // hook anchor row beneath desk lip
-    drawHangingHeadphones(ctx, 360, underY);
-    drawHangingShoes(ctx, 460, underY);
+    drawHangingHeadphones(ctx, 340, underY);
+    drawHangingShoes(ctx, 450, underY);
 
     // Hover overlay
     if (hover) {
@@ -317,18 +317,19 @@ function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }
     <button
       onClick={onToggle}
       aria-label="Toggle light/dark mode"
-      className="absolute bottom-4 right-4 z-30 w-10 h-10 rounded-full flex items-center justify-center
-                 border border-neutral-700 bg-neutral-900/70 hover:bg-neutral-800 transition
-                 backdrop-blur-sm text-neutral-200 shadow-lg"
+      className="absolute bottom-4 right-4 z-30 w-10 h-10
+                 flex items-center justify-center
+                 border border-transparent
+                 hover:border-neutral-500 hover:rounded-md hover:bg-neutral-900/40
+                 transition-all duration-150
+                 text-neutral-300 hover:text-white"
     >
       {theme === "dark" ? (
-        // Sun icon — switch to light
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="4" />
           <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
         </svg>
       ) : (
-        // Moon icon — switch to dark
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
         </svg>
@@ -355,40 +356,40 @@ function TerminalOverlay({
 
   return (
     <div
-      className="absolute pointer-events-none font-mono text-[#86d896] overflow-hidden"
+      className="absolute pointer-events-none font-mono text-white overflow-hidden"
       style={{
         left: `${left}%`,
         top: `${top}%`,
         width: `${width}%`,
         height: `${height}%`,
         fontFamily: "var(--font-geist-mono), ui-monospace, Menlo, monospace",
-        textShadow: "0 0 6px rgba(74,222,128,0.35)",
+        textShadow: "0 0 4px rgba(255,255,255,0.18)",
         padding: "1.4% 1.6%",
         lineHeight: 1.35,
         fontSize: "clamp(10px, 1.25vw, 18px)",
       }}
     >
-      <div className="text-[0.78em] uppercase tracking-[0.2em] text-[#3a7a4a] mb-[0.6em] border-b border-[#1a3a2a] pb-[0.3em]">
+      <div className="text-[0.78em] uppercase tracking-[0.2em] text-neutral-500 mb-[0.6em] border-b border-neutral-800 pb-[0.3em]">
         rohan@portfolio &nbsp; ~ &nbsp; zsh
       </div>
       {state.history.map((line, i) => (
         <div
           key={i}
-          className={i === state.history.length - 1 ? "text-[#86d896]" : "text-[#3a7a4a]"}
+          className={i === state.history.length - 1 ? "text-white" : "text-neutral-500"}
         >
           {line}
         </div>
       ))}
       <div>
-        <span className="text-[#5dc97e]">rohan@portfolio:~$</span>{" "}
-        <span>{state.currentCmd}</span>
+        <span className="text-neutral-400">rohan@portfolio:~$</span>{" "}
+        <span className="text-white">{state.currentCmd}</span>
         <span
           className="inline-block align-middle"
           style={{
             width: "0.55em",
             height: "1em",
             marginLeft: "0.1em",
-            background: state.cursorOn ? "#86d896" : "transparent",
+            background: state.cursorOn ? "#ffffff" : "transparent",
             transform: "translateY(0.05em)",
           }}
         />

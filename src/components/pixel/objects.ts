@@ -75,10 +75,10 @@ export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: st
 export function drawMonitor(
   c: Ctx, cx: number, deskTopY: number,
 ): ScreenRect {
-  // Monitor proportions — bigger hero (≈27" 16:9 with thin bezel).
-  const screenW = 340;
-  const screenH = 200;
-  const bezel = 5;
+  // Monitor proportions — smaller and thinner-bezel.
+  const screenW = 280;
+  const screenH = 170;
+  const bezel = 2;
   const outerW = screenW + bezel * 2;
   const outerH = screenH + bezel * 2 + 8; // +chin
   const ox = cx - outerW / 2;
@@ -192,8 +192,8 @@ export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
   hline(c, x + 4, y + h - 4, w - 8, sbHl);
   hline(c, x + 4, y + h - 3, w - 8, sbLt);
 
-  // ── Apple logo, centered — light silvery against the space-black ──
-  drawAppleLogo(c, cx - 6, y + 5, "#d0d0d4", sb);
+  // Clean lid — no Apple logo. Just a faint center sheen line.
+  hline(c, x + (w >> 1) - 8, y + (h >> 1), 16, sbHl);
 
   // ── Monitor cable: from LEFT side of laptop up to monitor's right side ──
   // Port on left edge (USB-C/Thunderbolt)
@@ -212,15 +212,9 @@ export function drawMacBook(c: Ctx, cx: number, deskTopY: number) {
     px(c, xx | 0, (yy | 0) + 1, G.g20);
   }
 
-  // ── Charger port on RIGHT side ──
-  // (the cable goes BEHIND the desk to the brick — only a short stub visible)
+  // ── Charger port on RIGHT side (port only — cable is fully behind desk) ──
   rect(c, x + w - 1, y + 8, 2, 4, "#3a3a40");
   px(c, x + w, y + 8, "#5a5a60");
-  // Tiny stub of white cable visible just to the right of the port before
-  // it drops behind the desk surface.
-  for (let i = 0; i < 4; i++) {
-    px(c, x + w + 1 + i, y + 10 + i, G.paper);
-  }
 
   // Drop shadow under laptop on desk
   hline(c, x - 1, y + h, w + 2, W.dk);
@@ -582,13 +576,13 @@ export function drawChargerBrick(c: Ctx, cx: number, deskTopY: number) {
   rect(c, cx + 2, oy + 3, 2, 4, G.ink);
   // Ground hole below
   rect(c, cx - 1, oy + 7, 2, 2, G.ink);
-  // Charger cable rising from the brick straight up and DISAPPEARING behind
-  // the desk (we stop the cable just below the desk's bottom front edge so
-  // it visually reads as "going behind" the desk).
-  const cableTopStop = 304; // just below DESK_BOTTOM_Y so brick→behind reads
+  // Short cable rising from the brick — only a few pixels visible above
+  // the brick before it disappears behind the desk back. Never crosses the
+  // desk surface band.
+  const cableTopStop = by - 14;
   for (let yy = by; yy > cableTopStop; yy--) {
     const t = (by - yy) / (by - cableTopStop);
-    const xx = (cx + Math.sin(t * Math.PI * 1.5) * 2) | 0;
+    const xx = (cx + Math.sin(t * Math.PI) * 1) | 0;
     px(c, xx, yy, G.paper);
     if (((by - yy) % 4) === 0) px(c, xx, yy - 1, G.g75);
   }
@@ -673,16 +667,18 @@ export function drawHangingShoes(c: Ctx, cx: number, hookY: number) {
   px(c, cx - 3, hookY + 4, G.g75);
   px(c, cx + 2, hookY + 4, G.g75);
 
-  // Two lace strands fall down to each shoe
+  // Two lace strands fall down to each shoe — spaced WIDE so the two shoes
+  // read as a clear pair, not a single blob.
   const lAnchorY = hookY + 5;
-  const leftFootX = cx - 14;
-  const rightFootX = cx + 14;
-  drawShoeLace(c, cx - 1, lAnchorY, leftFootX + 4, lAnchorY + 18);
-  drawShoeLace(c, cx + 1, lAnchorY, rightFootX - 4, lAnchorY + 18);
+  const leftFootX  = cx - 22;
+  const rightFootX = cx + 22;
+  // Left shoe hangs slightly lower than the right (staggered for realism).
+  drawShoeLace(c, cx - 2, lAnchorY, leftFootX + 4,  lAnchorY + 22);
+  drawShoeLace(c, cx + 2, lAnchorY, rightFootX - 4, lAnchorY + 18);
 
-  // Shoes (slightly rotated — toe pointing down a bit, hanging)
-  drawHangingShoe(c, leftFootX, lAnchorY + 18, false);
-  drawHangingShoe(c, rightFootX, lAnchorY + 18, true);
+  // Shoes — toe-out so the pair is mirror-symmetric.
+  drawHangingShoe(c, leftFootX,  lAnchorY + 22, false);  // toe points left
+  drawHangingShoe(c, rightFootX, lAnchorY + 18, true);   // toe points right
 }
 
 function drawShoeLace(c: Ctx, x1: number, y1: number, x2: number, y2: number) {
