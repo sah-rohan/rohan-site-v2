@@ -24,8 +24,8 @@ interface Zone {
 const ZONES: Zone[] = [
   // Tiny guitar under desk (music)
   { id: "music",      x: 166, y: 326, w: 30,  h: 70,  label: "MUSIC" },
-  // MacBook flat on desk (projects)
-  { id: "projects",   x: 420, y: 252, w: 100, h: 28,  label: "PROJECTS" },
+  // MacBook flat on desk (projects) — covers full laptop footprint cx=450±50, y=254-282
+  { id: "projects",   x: 396, y: 252, w: 108, h: 32,  label: "PROJECTS" },
   // Small bookshelf under desk (education)
   { id: "education",  x: 90,  y: 300, w: 56,  h: 96,  label: "EDUCATION" },
   // Phone laying flat on desk (contact)
@@ -125,18 +125,12 @@ export default function PixelDesk() {
     drawHangingHeadphones(ctx, 340, underY);
     drawHangingShoes(ctx, 450, underY);
 
-    // Hover overlay
+    // Hover outline only — the label is rendered as an HTML overlay for readability.
     if (hover) {
       const z = ZONES.find(zz => zz.id === hover)!;
-      ctx.strokeStyle = "rgba(255,255,255,0.55)";
+      ctx.strokeStyle = "rgba(255,255,255,0.6)";
       ctx.lineWidth = 1;
       ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
-      ctx.fillStyle = "rgba(0,0,0,0.7)";
-      ctx.fillRect(z.x, z.y - 9, z.label.length * 5 + 6, 9);
-      ctx.fillStyle = "#f4f4f4";
-      ctx.font = "7px ui-monospace, Menlo, monospace";
-      ctx.textBaseline = "top";
-      ctx.fillText(z.label, z.x + 3, z.y - 8);
     }
   }, [hover, screenRect]);
 
@@ -292,6 +286,29 @@ export default function PixelDesk() {
       {screenRect && (
         <TerminalOverlay rect={screenRect} state={terminal} />
       )}
+      {/* Hover label — readable HTML overlay positioned above the hovered zone */}
+      {hover && (() => {
+        const z = ZONES.find(zz => zz.id === hover)!;
+        const left = (z.x / CW) * 100;
+        const top = (z.y / CH) * 100;
+        return (
+          <div
+            className="absolute pointer-events-none z-20"
+            style={{
+              left: `${left}%`,
+              top: `${top}%`,
+              transform: "translate(-2px, calc(-100% - 6px))",
+            }}
+          >
+            <div
+              className="px-2 py-1 rounded-md bg-black/85 text-white font-mono whitespace-nowrap shadow-lg border border-white/10"
+              style={{ fontSize: "11px", letterSpacing: "0.18em" }}
+            >
+              {z.label}
+            </div>
+          </div>
+        );
+      })()}
       {active && (
         <SectionModal id={active} onClose={() => setActive(null)} />
       )}
