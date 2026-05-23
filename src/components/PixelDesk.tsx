@@ -5,7 +5,8 @@ import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk } from "./pixel/scene
 import { drawGuitar } from "./pixel/guitar";
 import {
   drawMonitor, drawTerminalBackground, drawMacBook, drawKeyboard, drawMouse,
-  drawBookshelf, drawPhone, drawRunningShoes,
+  drawBookshelf, drawPhone,
+  drawHangingHeadphones, drawHangingShoes, drawTinyGuitar,
   ScreenRect,
 } from "./pixel/objects";
 import { preloadSprites, drawSprite, SPRITE_DEFS } from "./pixel/sprites";
@@ -21,18 +22,18 @@ interface Zone {
 
 // Hit zones — tuned to where each object lands in the 640×400 canvas.
 const ZONES: Zone[] = [
-  // Floor guitar (music) — spans most of the guitar's vertical extent
-  { id: "music",      x: 84,  y: 200, w: 64,  h: 198, label: "MUSIC" },
-  // MacBook (projects)
-  { id: "projects",   x: 510, y: 196, w: 110, h: 64,  label: "PROJECTS" },
-  // Desk-top bookshelf (education)
-  { id: "education",  x: 46,  y: 168, w: 64,  h: 84,  label: "EDUCATION" },
-  // Phone (contact)
-  { id: "contact",    x: 146, y: 258, w: 22,  h: 44,  label: "CONTACT" },
-  // Keyboard (experience)
+  // Tiny guitar under desk (music)
+  { id: "music",      x: 226, y: 320, w: 30,  h: 80,  label: "MUSIC" },
+  // MacBook on desk (projects)
+  { id: "projects",   x: 514, y: 200, w: 96,  h: 70,  label: "PROJECTS" },
+  // Floor bookshelf in front of desk (education)
+  { id: "education",  x: 18,  y: 200, w: 72,  h: 196, label: "EDUCATION" },
+  // Phone on desk (contact)
+  { id: "contact",    x: 112, y: 258, w: 22,  h: 44,  label: "CONTACT" },
+  // Keyboard on desk (experience)
   { id: "experience", x: 200, y: 258, w: 172, h: 20,  label: "EXPERIENCE" },
-  // Running shoes on floor (interests)
-  { id: "interests",  x: 280, y: 340, w: 100, h: 36,  label: "INTERESTS" },
+  // Hanging shoes under desk (interests) — Nike swoosh
+  { id: "interests",  x: 432, y: 286, w: 60,  h: 60,  label: "INTERESTS" },
 ];
 
 // Monitor center — true horizontal center of the canvas.
@@ -79,8 +80,7 @@ export default function PixelDesk() {
     };
 
     // Desk-top items, left → right.
-    orProc("bookshelf", 78, DESK_TOP_Y, () => drawBookshelf(ctx, 78, DESK_TOP_Y));
-    orProc("phone", 156, DESK_TOP_Y, () => drawPhone(ctx, 156, DESK_TOP_Y));
+    orProc("phone", 122, DESK_TOP_Y, () => drawPhone(ctx, 122, DESK_TOP_Y));
 
     // Monitor — sprite version still needs to expose a screen rect for the
     // terminal overlay. If a sprite exists, the screen rect is derived from
@@ -109,10 +109,16 @@ export default function PixelDesk() {
     orProc("keyboard", 286, DESK_TOP_Y, () => drawKeyboard(ctx, 286, DESK_TOP_Y));
     orProc("mouse", 446, DESK_TOP_Y, () => drawMouse(ctx, 446, DESK_TOP_Y));
 
-    // Floor items — guitar on stand, running shoes
-    orProc("guitar-music", 116, CH - 8,
-      () => drawGuitar(ctx, 116, CH - 8, { strap: true }));
-    orProc("shoes", 320, CH - 18, () => drawRunningShoes(ctx, 320, CH - 18));
+    // Floor items — bookshelf stands on the floor in front of the desk (left).
+    drawBookshelf(ctx, 18, CH - 6);
+
+    // Under-desk hanging items + tiny guitar.
+    // Hooks are attached to the underside of the desk front lip — below
+    // the desk's bottom edge (so they don't intersect mousepad/keyboard).
+    const underY = 290; // just below DESK_BOTTOM_Y (=286)
+    drawTinyGuitar(ctx, 240, CH - 8);          // tiny acoustic leaning under desk
+    drawHangingHeadphones(ctx, 360, underY);
+    drawHangingShoes(ctx, 460, underY);
 
     // Hover overlay
     if (hover) {
