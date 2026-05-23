@@ -18,12 +18,12 @@ interface Zone {
 
 // Hit zones — tuned to where each object lands in the 640×400 canvas.
 const ZONES: Zone[] = [
-  { id: "music",      x: 100, y: 14,  w: 84, h: 218, label: "MUSIC" },
-  { id: "projects",   x: 462, y: 198, w: 100, h: 60, label: "PROJECTS" },
-  { id: "education",  x: 14,  y: 30,  w: 84, h: 220, label: "EDUCATION" },
-  { id: "contact",    x: 384, y: 256, w: 22, h: 42,  label: "CONTACT" },
-  { id: "experience", x: 226, y: 256, w: 172, h: 18, label: "EXPERIENCE" },
-  { id: "interests",  x: 256, y: 332, w: 80, h: 30,  label: "INTERESTS" },
+  { id: "music",      x: 104, y: 8,   w: 56,  h: 224, label: "MUSIC" },
+  { id: "projects",   x: 504, y: 196, w: 110, h: 64,  label: "PROJECTS" },
+  { id: "education",  x: 14,  y: 30,  w: 80,  h: 220, label: "EDUCATION" },
+  { id: "contact",    x: 202, y: 258, w: 22,  h: 44,  label: "CONTACT" },
+  { id: "experience", x: 278, y: 258, w: 168, h: 20,  label: "EXPERIENCE" },
+  { id: "interests",  x: 304, y: 332, w: 86,  h: 32,  label: "INTERESTS" },
 ];
 
 export default function PixelDesk() {
@@ -51,21 +51,21 @@ export default function PixelDesk() {
     drawFloor(ctx);
     drawDesk(ctx);
 
-    // Wall items (drawn before desk-top items so monitor overlaps slightly)
-    drawGuitar(ctx, 142, 18, { strap: true });
-    drawGuitar(ctx, 226, 22, { dreadnought: true });
+    // Wall items — guitars fit in the gap between bookshelf and monitor.
     drawBookshelf(ctx, 14, DESK_TOP_Y);
+    drawGuitar(ctx, 132, 12, { strap: true });
+    drawGuitar(ctx, 200, 16, { dreadnought: true });
 
     // Desk-top items
-    drawFan(ctx, 326, DESK_TOP_Y);                  // fan left of monitor (smaller foot)
-    drawPhone(ctx, 395, DESK_TOP_Y);
-    screenRectRef.current = drawMonitor(ctx, 360, DESK_TOP_Y); // hero
-    drawMacBook(ctx, 530, DESK_TOP_Y);
-    drawKeyboard(ctx, 312, DESK_TOP_Y);
-    drawMouse(ctx, 460, DESK_TOP_Y);
+    drawPhone(ctx, 212, DESK_TOP_Y);
+    drawFan(ctx, 252, DESK_TOP_Y);                  // fan left of monitor stand
+    screenRectRef.current = drawMonitor(ctx, 408, DESK_TOP_Y); // hero
+    drawMacBook(ctx, 562, DESK_TOP_Y);
+    drawKeyboard(ctx, 362, DESK_TOP_Y);
+    drawMouse(ctx, 514, DESK_TOP_Y);
 
-    // Floor item
-    drawRunningShoes(ctx, 296, CH - 36);
+    // Floor item — running shoes centered under monitor
+    drawRunningShoes(ctx, 330, CH - 36);
 
     // Terminal inside monitor
     if (screenRectRef.current) {

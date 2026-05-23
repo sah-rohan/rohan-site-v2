@@ -216,14 +216,14 @@ function drawStrap(
     if (j % 4 === 0) px(c, x, y, strapDk);
     if (j % 4 === 2) px(c, x + 2, y, strapHl);
   }
-  // 3) Dangle past bottom of body
-  for (let y = bodyTop + bodyH; y < bodyTop + bodyH + 40; y++) {
-    const t = (y - bodyTop - bodyH) / 40;
-    const x = (cx - 22 + t * 8) | 0;
+  // 3) Short dangle past bottom of body, tucked close to the body line.
+  const lastHalfW = profile[profile.length - 3] || 16;
+  for (let y = bodyTop + bodyH; y < bodyTop + bodyH + 22; y++) {
+    const t = (y - bodyTop - bodyH) / 22;
+    const x = (cx - lastHalfW + 1 + t * 2) | 0;
     rect(c, x, y, 3, 1, strap);
     if (y % 5 === 0) px(c, x, y, strapDk);
   }
   // Frayed tail
-  px(c, (cx - 14) | 0, bodyTop + bodyH + 40, strapDk);
-  px(c, (cx - 13) | 0, bodyTop + bodyH + 41, strapDk);
+  px(c, (cx - lastHalfW + 4) | 0, bodyTop + bodyH + 22, strapDk);
 }
