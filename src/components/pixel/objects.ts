@@ -74,15 +74,18 @@ export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: st
 
 export function drawMonitor(
   c: Ctx, cx: number, deskTopY: number,
+  size: { screenW: number; screenH: number } = { screenW: 280, screenH: 170 },
 ): ScreenRect {
-  // Monitor proportions — smaller and thinner-bezel.
-  const screenW = 280;
-  const screenH = 170;
+  // Monitor proportions — configurable size for responsive layout.
+  const screenW = size.screenW;
+  const screenH = size.screenH;
   const bezel = 2;
   const outerW = screenW + bezel * 2;
   const outerH = screenH + bezel * 2 + 8; // +chin
   const ox = cx - outerW / 2;
-  const oy = deskTopY - outerH - 18; // float above desk on stand
+  // Position so the V-foot's bottom rests ON the desk surface (no gap).
+  // Stand neck = 8px, V-foot = 6px tall. Foot bottom should land at deskTopY.
+  const oy = deskTopY - outerH - 13;
 
   // ── Outer chassis (matte black, beveled) ──
   rect(c, ox, oy, outerW, outerH, G.g10);
@@ -576,16 +579,55 @@ export function drawChargerBrick(c: Ctx, cx: number, deskTopY: number) {
   rect(c, cx + 2, oy + 3, 2, 4, G.ink);
   // Ground hole below
   rect(c, cx - 1, oy + 7, 2, 2, G.ink);
-  // Short cable rising from the brick — only a few pixels visible above
-  // the brick before it disappears behind the desk back. Never crosses the
-  // desk surface band.
-  const cableTopStop = by - 14;
-  for (let yy = by; yy > cableTopStop; yy--) {
-    const t = (by - yy) / (by - cableTopStop);
-    const xx = (cx + Math.sin(t * Math.PI) * 1) | 0;
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHARGER CABLE — routes from the brick (on the floor) up alongside
+// the desk's right edge, then across the desk top into the laptop's
+// right-side port. Never crosses through the desk's wood.
+//
+//   (brickCx, brickTopY) — top-center of the brick
+//   (laptopPortX, laptopPortY) — where the cable plugs into the laptop
+// ─────────────────────────────────────────────────────────────
+export function drawChargerCable(
+  c: Ctx,
+  brickCx: number, brickTopY: number,
+  laptopPortX: number, laptopPortY: number,
+  deskTopY: number, deskRightX: number,
+) {
+  // Side x = just outside the desk's right edge, so the vertical run is
+  // visually "around" the desk, not through it.
+  const sideX = deskRightX + 5;
+
+  // ── 1. Brick → desk-bottom level (curving up + right) ──
+  const segAEndY = deskTopY + 48; // just above brick, below desk
+  for (let yy = brickTopY; yy >= segAEndY; yy--) {
+    const t = (brickTopY - yy) / (brickTopY - segAEndY);
+    const xx = Math.round(brickCx + (sideX - brickCx) * t);
     px(c, xx, yy, G.paper);
-    if (((by - yy) % 4) === 0) px(c, xx, yy - 1, G.g75);
+    if ((yy & 3) === 0) px(c, xx, yy - 1, G.g75);
   }
+  // ── 2. Vertical rise along right side of desk (outside the wood) ──
+  for (let yy = segAEndY; yy >= deskTopY - 2; yy--) {
+    px(c, sideX, yy, G.paper);
+    if ((yy & 3) === 0) px(c, sideX, yy, G.g75);
+  }
+  // Small curl over the desk top edge
+  px(c, sideX - 1, deskTopY - 2, G.paper);
+  // ── 3. Across desk top to the laptop port ──
+  const segCStartX = sideX - 1;
+  const segCStartY = deskTopY + 2;
+  for (let i = 0; i <= Math.abs(segCStartX - laptopPortX); i++) {
+    const t = i / Math.abs(segCStartX - laptopPortX);
+    const xx = Math.round(segCStartX + (laptopPortX - segCStartX) * t);
+    const yy = Math.round(segCStartY + (laptopPortY - segCStartY) * t
+                          + Math.sin(t * Math.PI) * 2);
+    px(c, xx, yy, G.paper);
+    if ((i & 3) === 0) px(c, xx, yy + 1, G.g75);
+  }
+  // ── Plug at the laptop port ──
+  rect(c, laptopPortX, laptopPortY - 1, 3, 3, G.g25);
+  hline(c, laptopPortX, laptopPortY - 1, 3, G.g50);
 }
 
 // ─────────────────────────────────────────────────────────────

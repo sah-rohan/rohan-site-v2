@@ -6,7 +6,8 @@ import { drawGuitar } from "./pixel/guitar";
 import {
   drawMonitor, drawTerminalBackground, drawMacBook, drawKeyboard, drawMouse,
   drawBookshelf, drawPhone,
-  drawHangingHeadphones, drawHangingShoes, drawTinyGuitar, drawChargerBrick,
+  drawHangingHeadphones, drawHangingShoes, drawTinyGuitar,
+  drawChargerBrick, drawChargerCable,
   ScreenRect,
 } from "./pixel/objects";
 import { preloadSprites, drawSprite, SPRITE_DEFS } from "./pixel/sprites";
@@ -47,6 +48,19 @@ export default function PixelDesk() {
     const param = new URLSearchParams(window.location.search).get("theme");
     return param === "light" ? "light" : "dark";
   });
+
+  // Responsive monitor sizing — bigger on small viewports (so terminal stays
+  // usable), smaller on big viewports (so more of the room shows).
+  const [isCompact, setIsCompact] = useState(false);
+  useEffect(() => {
+    const update = () => setIsCompact(window.innerWidth < 820);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  const monitorSize = isCompact
+    ? { screenW: 340, screenH: 210 }
+    : { screenW: 220, screenH: 140 };
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenRectRef = useRef<ScreenRect | null>(null);
   const [screenRect, setScreenRect] = useState<ScreenRect | null>(null);
@@ -111,7 +125,6 @@ export default function PixelDesk() {
     let sr: ScreenRect;
     if (drawSprite(ctx, "monitor", MONITOR_CX, DESK_TOP_Y)) {
       const def = SPRITE_DEFS.monitor;
-      // Convention: sprite's inner screen takes 90% W, 75% H, top-aligned with bezel offset.
       sr = {
         x: MONITOR_CX - def.w / 2 + 16,
         y: DESK_TOP_Y - def.h + 14,
@@ -119,7 +132,7 @@ export default function PixelDesk() {
         h: def.h - 60,
       };
     } else {
-      sr = drawMonitor(ctx, MONITOR_CX, DESK_TOP_Y);
+      sr = drawMonitor(ctx, MONITOR_CX, DESK_TOP_Y, monitorSize);
     }
     screenRectRef.current = sr;
     if (!screenRect || sr.x !== screenRect.x || sr.y !== screenRect.y) {
@@ -131,8 +144,14 @@ export default function PixelDesk() {
     orProc("keyboard", 240, DESK_TOP_Y, () => drawKeyboard(ctx, 240, DESK_TOP_Y));
     orProc("mouse",    350, DESK_TOP_Y, () => drawMouse(ctx, 350, DESK_TOP_Y));
     orProc("macbook",  450, DESK_TOP_Y, () => drawMacBook(ctx, 450, DESK_TOP_Y));
-    // Charger brick & wall outlet on the floor to the right of the desk.
+    // Charger brick on the floor + cable routed around the desk's right edge
+    // up onto the desk and into the laptop's right-side port.
     drawChargerBrick(ctx, 530, DESK_TOP_Y);
+    const laptopRightPortX = 500;       // x just past the laptop's right edge
+    const laptopRightPortY = DESK_TOP_Y + 12;
+    drawChargerCable(ctx, 530, DESK_TOP_Y + 60,
+                     laptopRightPortX, laptopRightPortY,
+                     DESK_TOP_Y, 590);
 
     // Under-desk items — all in the floor area between the desk legs.
     drawBookshelf(ctx, 90, CH - 6);            // small bookshelf under desk (left)
@@ -148,7 +167,7 @@ export default function PixelDesk() {
       ctx.lineWidth = 1;
       ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
     }
-  }, [hover, screenRect, theme, wallImageReady]);
+  }, [hover, screenRect, theme, wallImageReady, isCompact, monitorSize]);
 
   // Repaint when hover changes OR sprites finish loading.
   useEffect(() => { repaint(); }, [repaint, spritesReady]);
@@ -280,28 +299,37 @@ export default function PixelDesk() {
   };
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        width={CW}
-        height={CH}
-        className="absolute inset-0 w-full h-full"
-        style={{ imageRendering: "pixelated", cursor: hover ? "pointer" : "crosshair" }}
-        onMouseMove={e => {
-          if (typing) return;
-          const z = eventToZone(e.clientX, e.clientY);
-          setHover(z ? z.id : null);
+    <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a]">
+      {/* Aspect-ratio-preserving stage. Canvas + overlays scale together so
+          the scene never stretches; viewports that don't match get letterboxed. */}
+      <div
+        className="relative"
+        style={{
+          width: "min(100vw, calc(100vh * (640/400)))",
+          aspectRatio: "640 / 400",
         }}
-        onMouseLeave={() => setHover(null)}
-        onClick={e => {
-          if (typing || active) return;
-          const z = eventToZone(e.clientX, e.clientY);
-          if (z) playType(z.id);
-        }}
-      />
-      {screenRect && (
-        <TerminalOverlay rect={screenRect} state={terminal} />
-      )}
+      >
+        <canvas
+          ref={canvasRef}
+          width={CW}
+          height={CH}
+          className="block w-full h-full"
+          style={{ imageRendering: "pixelated", cursor: hover ? "pointer" : "crosshair" }}
+          onMouseMove={e => {
+            if (typing) return;
+            const z = eventToZone(e.clientX, e.clientY);
+            setHover(z ? z.id : null);
+          }}
+          onMouseLeave={() => setHover(null)}
+          onClick={e => {
+            if (typing || active) return;
+            const z = eventToZone(e.clientX, e.clientY);
+            if (z) playType(z.id);
+          }}
+        />
+        {screenRect && (
+          <TerminalOverlay rect={screenRect} state={terminal} />
+        )}
       {/* Hover label — readable HTML overlay positioned above the hovered zone */}
       {hover && (() => {
         const z = ZONES.find(zz => zz.id === hover)!;
@@ -324,13 +352,14 @@ export default function PixelDesk() {
             </div>
           </div>
         );
-      })()}
+        })()}
+      </div>
       {active && (
         <SectionModal id={active} onClose={() => setActive(null)} />
       )}
       {/* Theme toggle — bottom-right, à la Alex Young */}
       <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === "dark" ? "light" : "dark")} />
-    </>
+    </div>
   );
 }
 
