@@ -206,9 +206,12 @@ export function drawKeyboard(c: Ctx, cx: number, deskTopY: number) {
       px(c, x, y, G.g50);
     }
   }
-  // Drop shadow on desk
-  rect(c, kx + 2, ky + kh, kw - 4, 1, W.d2);
-  rect(c, kx + 4, ky + kh + 1, kw - 8, 1, W.d3);
+  // Drop shadow on desk — wider/darker so the keyboard reads as resting on it.
+  rect(c, kx - 1, ky + kh, kw + 2, 1, W.dk);
+  rect(c, kx + 1, ky + kh + 1, kw - 2, 1, W.d1);
+  rect(c, kx + 3, ky + kh + 2, kw - 6, 1, W.d2);
+  // Front lip cast onto the wood
+  hline(c, kx + 4, ky + kh + 3, kw - 8, W.d3);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -225,6 +228,9 @@ export function drawMouse(c: Ctx, cx: number, deskTopY: number) {
   vline(c, px0, py0, padH, "#1f3552");
   vline(c, px0 + padW - 1, py0, padH, "#0c1a30");
   stipple(c, px0 + 1, py0 + 1, padW - 2, padH - 2, "#22365a", 0.15, 29);
+  // Drop shadow under mousepad — anchors it to the desk.
+  rect(c, px0 - 1, py0 + padH, padW + 2, 1, W.dk);
+  rect(c, px0 + 1, py0 + padH + 1, padW - 2, 1, W.d2);
 
   // Mouse — small dark blob, top-down
   const mcx = px0 + padW - 16;
@@ -246,12 +252,12 @@ export function drawMouse(c: Ctx, cx: number, deskTopY: number) {
 // BOOKSHELF — left of desk, against the wall.
 // Tall, multiple shelves, books of varied B&W spines with a couple amber pops.
 // ─────────────────────────────────────────────────────────────
+// Small desk-top bookshelf — sits ON the desk surface, anchored by bottom.
 export function drawBookshelf(c: Ctx, x: number, deskTopY: number) {
-  const shW = 80;
-  const shTop = 30;
-  const shBottom = deskTopY - 2;
-  const shH = shBottom - shTop;
-  const shelves = 5;
+  const shW = 64;
+  const shH = 78;
+  const shTop = deskTopY - shH;
+  const shelves = 3;
 
   // Outer case
   beveled(c, x, shTop, shW, shH, W.d2, W.d4, W.dk);
@@ -273,8 +279,11 @@ export function drawBookshelf(c: Ctx, x: number, deskTopY: number) {
     drawBookRow(c, x + 5, shelfY + 1, shW - 10, sliceH - 3, s);
   }
 
-  // Top trinket — a small framed photo and a tiny rubik's cube
-  drawDeskRubiks(c, x + shW - 18, shTop - 14);
+  // Tiny rubik's cube perched on top.
+  drawDeskRubiks(c, x + shW - 18, shTop - 12);
+  // Shadow on desk under shelf
+  rect(c, x + 2, deskTopY, shW - 4, 1, W.d2);
+  rect(c, x + 4, deskTopY + 1, shW - 8, 1, W.d3);
 }
 
 function drawBookRow(c: Ctx, x: number, y: number, w: number, h: number, seed: number) {

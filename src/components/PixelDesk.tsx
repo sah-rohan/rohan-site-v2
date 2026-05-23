@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { CW, CH, DESK_TOP_Y, drawWall, drawWindow, drawFloor, drawDesk } from "./pixel/scene";
+import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk } from "./pixel/scene";
 import { drawGuitar } from "./pixel/guitar";
 import {
   drawMonitor, drawTerminalBackground, drawMacBook, drawKeyboard, drawMouse,
-  drawBookshelf, drawPhone, drawRunningShoes, drawFan,
+  drawBookshelf, drawPhone, drawRunningShoes,
   ScreenRect,
 } from "./pixel/objects";
 import { preloadSprites, drawSprite, SPRITE_DEFS } from "./pixel/sprites";
@@ -21,12 +21,18 @@ interface Zone {
 
 // Hit zones — tuned to where each object lands in the 640×400 canvas.
 const ZONES: Zone[] = [
-  { id: "music",      x: 94,  y: 8,   w: 58,  h: 226, label: "MUSIC" },
-  { id: "projects",   x: 484, y: 196, w: 110, h: 64,  label: "PROJECTS" },
-  { id: "education",  x: 14,  y: 30,  w: 80,  h: 220, label: "EDUCATION" },
-  { id: "contact",    x: 90,  y: 258, w: 22,  h: 44,  label: "CONTACT" },
-  { id: "experience", x: 200, y: 258, w: 168, h: 20,  label: "EXPERIENCE" },
-  { id: "interests",  x: 240, y: 332, w: 100, h: 32,  label: "INTERESTS" },
+  // Floor guitar (music) — spans most of the guitar's vertical extent
+  { id: "music",      x: 84,  y: 200, w: 64,  h: 198, label: "MUSIC" },
+  // MacBook (projects)
+  { id: "projects",   x: 510, y: 196, w: 110, h: 64,  label: "PROJECTS" },
+  // Desk-top bookshelf (education)
+  { id: "education",  x: 46,  y: 168, w: 64,  h: 84,  label: "EDUCATION" },
+  // Phone (contact)
+  { id: "contact",    x: 146, y: 258, w: 22,  h: 44,  label: "CONTACT" },
+  // Keyboard (experience)
+  { id: "experience", x: 200, y: 258, w: 172, h: 20,  label: "EXPERIENCE" },
+  // Running shoes on floor (interests)
+  { id: "interests",  x: 280, y: 340, w: 100, h: 36,  label: "INTERESTS" },
 ];
 
 // Monitor center — true horizontal center of the canvas.
@@ -59,8 +65,7 @@ export default function PixelDesk() {
     if (!ctx) return;
     ctx.imageSmoothingEnabled = false;
 
-    drawWall(ctx);
-    drawWindow(ctx);
+    drawWall(ctx); // floor-to-ceiling Bay Bridge window
     drawFloor(ctx);
     drawDesk(ctx);
 
@@ -73,13 +78,9 @@ export default function PixelDesk() {
       if (!drawSprite(ctx, id, x, y)) proc();
     };
 
-    // Wall items — single hero guitar (music section), bookshelf (education).
-    orProc("bookshelf", 14, DESK_TOP_Y - 2, () => drawBookshelf(ctx, 14, DESK_TOP_Y));
-    orProc("guitar-music", 122, 14, () => drawGuitar(ctx, 122, 14, { strap: true }));
-
-    // Desk-top items.
-    orProc("phone", 100, DESK_TOP_Y, () => drawPhone(ctx, 100, DESK_TOP_Y));
-    orProc("fan", 130, DESK_TOP_Y, () => drawFan(ctx, 130, DESK_TOP_Y));
+    // Desk-top items, left → right.
+    orProc("bookshelf", 78, DESK_TOP_Y, () => drawBookshelf(ctx, 78, DESK_TOP_Y));
+    orProc("phone", 156, DESK_TOP_Y, () => drawPhone(ctx, 156, DESK_TOP_Y));
 
     // Monitor — sprite version still needs to expose a screen rect for the
     // terminal overlay. If a sprite exists, the screen rect is derived from
@@ -104,12 +105,14 @@ export default function PixelDesk() {
     }
     drawTerminalBackground(ctx, sr);
 
-    orProc("macbook", 540, DESK_TOP_Y, () => drawMacBook(ctx, 540, DESK_TOP_Y));
-    orProc("keyboard", 282, DESK_TOP_Y, () => drawKeyboard(ctx, 282, DESK_TOP_Y));
-    orProc("mouse", 440, DESK_TOP_Y, () => drawMouse(ctx, 440, DESK_TOP_Y));
+    orProc("macbook", 562, DESK_TOP_Y, () => drawMacBook(ctx, 562, DESK_TOP_Y));
+    orProc("keyboard", 286, DESK_TOP_Y, () => drawKeyboard(ctx, 286, DESK_TOP_Y));
+    orProc("mouse", 446, DESK_TOP_Y, () => drawMouse(ctx, 446, DESK_TOP_Y));
 
-    // Floor
-    orProc("shoes", 290, CH - 36, () => drawRunningShoes(ctx, 290, CH - 36));
+    // Floor items — guitar on stand, running shoes
+    orProc("guitar-music", 116, CH - 8,
+      () => drawGuitar(ctx, 116, CH - 8, { strap: true }));
+    orProc("shoes", 320, CH - 18, () => drawRunningShoes(ctx, 320, CH - 18));
 
     // Hover overlay
     if (hover) {

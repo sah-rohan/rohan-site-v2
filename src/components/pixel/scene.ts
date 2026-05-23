@@ -11,34 +11,38 @@ export const DESK_FRONT_Y = 268;
 export const DESK_BOTTOM_Y = 286;
 
 export function drawWall(c: Ctx) {
-  // Base wall — warm dark gray, top-to-bottom subtle gradient via banding.
-  rect(c, 0, 0, CW, DESK_TOP_Y, G.g20);
-  // Vertical gradient — lighter at top (ceiling bounce), darker toward desk.
-  for (let y = 0; y < DESK_TOP_Y; y++) {
-    const t = y / DESK_TOP_Y;
-    if (y % 2 === 0 && t < 0.35) hline(c, 0, y, CW, G.g25);
-    if (t > 0.7 && y % 3 === 0) hline(c, 0, y, CW, G.g15);
-  }
-  // Wall grain stipple — extremely subtle.
-  stipple(c, 0, 0, CW, DESK_TOP_Y, G.g15, 0.03, 7);
-  stipple(c, 0, 0, CW, DESK_TOP_Y, G.g25, 0.02, 13);
+  // High-rise apartment: the entire back wall is a floor-to-ceiling
+  // window onto the Bay Bridge. The previous flat wall is replaced by
+  // the bay view directly so the room feels like a SF apartment.
+  drawBayView(c, 0, 0, CW, DESK_TOP_Y);
 
-  // Baseboard along desk top (behind desk).
-  hline(c, 0, DESK_TOP_Y - 2, CW, G.g15);
-  hline(c, 0, DESK_TOP_Y - 1, CW, G.g10);
+  // Window frame — thin dark steel mullions framing the room edges.
+  // Top header
+  rect(c, 0, 0, CW, 4, G.ink);
+  hline(c, 0, 4, CW, G.g15);
+  // Bottom sill at desk-top level
+  hline(c, 0, DESK_TOP_Y - 4, CW, G.g15);
+  rect(c, 0, DESK_TOP_Y - 3, CW, 3, G.ink);
+  // Vertical mullions dividing into three panels
+  drawMullion(c, Math.floor(CW * 0.33));
+  drawMullion(c, Math.floor(CW * 0.66));
+  // Left and right vertical edges
+  drawMullion(c, 0);
+  drawMullion(c, CW - 2);
 }
 
-export function drawWindow(c: Ctx) {
-  // Right-side window — view onto the Bay Bridge at dusk.
-  // Composition: gradient dusk sky, distant SF skyline, the bridge silhouette
-  // with suspension cables and tower lights, dark bay water with reflected lights.
-  const x = 470, y = 18, w = 158, h = 220;
+function drawMullion(c: Ctx, x: number) {
+  rect(c, x, 0, 2, DESK_TOP_Y, G.ink);
+  vline(c, x, 0, DESK_TOP_Y, G.g15);
+}
 
-  // Outer wood frame
-  beveled(c, x - 5, y - 5, w + 10, h + 10, G.g30, G.g45, G.g10);
-  beveled(c, x - 3, y - 3, w + 6, h + 6, G.g20, G.g35, G.g05);
-  // Inner sill highlight at bottom
-  hline(c, x - 3, y + h + 2, w + 6, G.g50);
+// No-op kept for API compat — the bay view is now baked into drawWall.
+export function drawWindow(_c: Ctx) { /* intentionally empty */ }
+
+export function drawBayView(c: Ctx, x: number, y: number, w: number, h: number) {
+  // The Bay Bridge at dusk, rendered to fill any rect. Composes:
+  // gradient dusk sky, distant SF skyline, the bridge silhouette with
+  // suspension cables + tower lights, dark bay water with reflections.
 
   // ── Sky (dusk gradient: deep navy top → warm amber horizon) ──
   for (let yy = 0; yy < h; yy++) {
@@ -102,18 +106,7 @@ export function drawWindow(c: Ctx) {
     }
   }
 
-  // ── Mullion (vertical window divider) ──
-  vline(c, x + (w >> 1), y, h, G.g15);
-  vline(c, x + (w >> 1) + 1, y, h, G.g25);
-
-  // ── Glass pane reflection sheen (subtle diagonal) ──
-  for (let i = 0; i < 28; i++) {
-    const xx = x + 6 + i;
-    const yy = y + 8 + i * 2;
-    if (yy < y + h - 4 && xx < x + w - 4) {
-      px(c, xx, yy, "rgba(255,255,255,0.05)");
-    }
-  }
+  // (mullion intentionally drawn by drawWall in the high-rise variant)
 }
 
 // Linear-blend two hex colors. Cheap, no clamping.
