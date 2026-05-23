@@ -11,10 +11,10 @@ export interface ScreenRect { x: number; y: number; w: number; h: number; }
 export function drawMonitor(
   c: Ctx, cx: number, deskTopY: number,
 ): ScreenRect {
-  // Monitor proportions (≈27" 16:9 with thin bezel, matching Samsung in photo).
-  const screenW = 260;
-  const screenH = 158;
-  const bezel = 4;
+  // Monitor proportions — bigger hero (≈27" 16:9 with thin bezel).
+  const screenW = 340;
+  const screenH = 200;
+  const bezel = 5;
   const outerW = screenW + bezel * 2;
   const outerH = screenH + bezel * 2 + 8; // +chin
   const ox = cx - outerW / 2;
@@ -83,45 +83,12 @@ export interface TerminalState {
   cursorOn: boolean;        // blinking cursor
 }
 
-export function drawTerminal(c: Ctx, s: ScreenRect, t: TerminalState) {
-  // Phosphor background — very dark green/black with subtle scanlines.
+// Paint only the screen background + scanlines. Text is rendered by an
+// HTML overlay in React (TerminalOverlay) so the type stays sharp.
+export function drawTerminalBackground(c: Ctx, s: ScreenRect) {
   rect(c, s.x, s.y, s.w, s.h, "#04080a");
-  // Scanlines
   for (let y = 0; y < s.h; y += 2) hline(c, s.x, s.y + y, s.w, "#02050a");
-  // Vignette corners
   stipple(c, s.x, s.y, s.w, s.h, A.greenDk, 0.015, 5);
-
-  // CRT-ish header bar
-  rect(c, s.x + 2, s.y + 2, s.w - 4, 8, "#06100a");
-  c.fillStyle = A.greenDk;
-  c.font = "6px ui-monospace, Menlo, monospace";
-  c.textBaseline = "top";
-  c.fillText("rohan@portfolio  ~  zsh", s.x + 6, s.y + 3);
-
-  // Body text
-  const baseY = s.y + 14;
-  const lineH = 8;
-  c.font = "7px ui-monospace, Menlo, monospace";
-  c.fillStyle = A.greenLt;
-  // history
-  for (let i = 0; i < t.history.length; i++) {
-    c.fillStyle = i === t.history.length - 1 ? A.greenLt : "#2a6a3a";
-    c.fillText(t.history[i], s.x + 6, baseY + i * lineH);
-  }
-  // current prompt line
-  const promptY = baseY + t.history.length * lineH;
-  c.fillStyle = "#86d896";
-  const prompt = "rohan@portfolio:~$ ";
-  c.fillText(prompt, s.x + 6, promptY);
-  // typed command
-  c.fillStyle = A.greenLt;
-  const promptW = c.measureText(prompt).width;
-  c.fillText(t.currentCmd, s.x + 6 + promptW, promptY);
-  // cursor
-  if (t.cursorOn) {
-    const cmdW = c.measureText(t.currentCmd).width;
-    rect(c, (s.x + 6 + promptW + cmdW + 1) | 0, promptY + 1, 4, 7, A.greenLt);
-  }
 }
 
 // ─────────────────────────────────────────────────────────────
