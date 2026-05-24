@@ -267,7 +267,7 @@ that don't have to ship.`,
     · play a live set somewhere that
       actually means something to me
     · keep learning piano voicings /
-      quietly, every week
+      every week
 
   life
     · run a sub-3 marathon
