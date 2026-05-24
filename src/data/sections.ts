@@ -235,11 +235,6 @@ Iowa Legislature                          Summer 24
   📊  Built historic voter data automation software
   JavaScript · Excel
 
-Gladiators NYC                            Summer 24
-  Software Engineering Intern
-  📈  Automated product pricing + availability tracking
-  JavaScript · Excel
-
 Iowa State University                     Fall 23 / Spring 24
   Undergraduate Research Assistant
   🛰️  LiDAR sensor defense via deep learning
