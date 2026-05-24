@@ -77,7 +77,7 @@ who i grew up on
   },
 
   // ─── PROJECTS (macbook) ─── full project list ───
-  projects: {
+    projects: {
     id: "projects",
     title: "PROJECTS",
     cmd: "ls -la ~/projects",
@@ -87,44 +87,80 @@ who i grew up on
 something's brewing
   the most excited I've been about anything I've built.
   agentic AI · hardware · software
-
+ 
+open source
+────────────────────────────
+Apple FoundationDB  ·  PR #13241
+  Added type annotations to the fdb Python bindings
+  (~300 lines changed across 4 files).
+  Python · Typing · Open Source
+ 
+Apache Beam  ·  merged
+  Documentation improvements to apache/beam main.
+  Open Source · Documentation
+ 
+Meta Pyrefly  ·  in progress
+  Contributing to Meta's Rust-based Python type checker.
+  Rust · Python · Compilers · Open Source
+ 
+personal
+────────────────────────────
+RAG RMP
+  Rate My Professor RAG assistant for ISU —
+  semantic search over professor reviews with LLM-powered Q&A.
+  Python · RAG · Pinecone · OpenAI
+ 
+Distributed KV Store
+  Fault-tolerant distributed key-value store with
+  consensus and replication.
+  Go · Distributed Systems · Raft
+ 
+FDA API  ·  Ivy College of Business
+  Internal tool for bulk FDA data retrieval —
+  built for a professor's business research.
+  React · Python · Data Engineering
+ 
+Precision Project Pilot
+  AI-assisted project planning and scoping tool.
+  TypeScript · React · OpenAI · System Design
+ 
 Federated Learning Platform
   Privacy-preserving federated ML across edge devices.
   Rust · C++ · Python · PyTorch · Prometheus · Distributed Systems
-
+ 
 AI Polls
   AI-powered voting platform with RAG chatbot + custom email auth.
   SpringBoot · OpenAI · ONNX · Git · System Design · SQL
-
+ 
 PremierCashBack
   AI-driven credit card cashback optimizer.
   React · React Native · Tailwind · ClerkAPI · StripeAPI · Postgres · OpenAI
-
+ 
 MemoraAI
   AI-powered flashcard platform.
   React · Next.js · OpenAI · Tailwind · Clerk · Stripe · Firebase
-
+ 
 Asteroid Detection
   NASA-classified NEO tracker with RAG-powered space hazard insights.
   React · Next.js · NASA API · MUI · OpenAI · Pinecone · Python
-
+ 
 MongoScraper
   Web scraper persisting URL data into MongoDB for API-free dev.
   React · Node.js · MongoDB · Puppeteer
-
+ 
 ISU Professor Recommender
   RAG tool matching professors to research interests.
   React · Next.js · Pinecone · Python · RAG · Firebase
-
+ 
 CS 362 (OOAD) Capstone
   40+ exhaustive use cases + custom JSON parser to model a university.
   Java · Agile · UML · System Design · Git
-
+ 
 LeetCode Tracker
   AI-powered tracker w/ leaderboard + personalized challenges
   (200+ visits · 28+ problems solved by users).
   TypeScript · React · MongoDB · Clerk · Gemini · LeetCode API
-
+ 
 → github.com/sah-rohan`,
   },
 
@@ -178,7 +214,8 @@ UCSF                                      Present
 
 Indu Sah Foundation                       Present
   Founding Software Engineer (Solo)
-  🌏  Building software for a Nepalese-American humanitarian non-profit
+  🌏  Built and own the entire codebase (~12.6k lines) for a
+      Nepalese-American humanitarian non-profit.
   → indusahfoundation.org
 
 Ivy College of Business                   Fall 24 / Spring 25
@@ -325,3 +362,5 @@ other
  and the modal goes live.)`,
   },
 };
+
+
