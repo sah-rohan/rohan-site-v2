@@ -1225,13 +1225,13 @@ interface NowPlayingState {
 
 function useNowPlaying(): NowPlayingState {
   const fallback: NowPlayingState = {
-    title: "Fast Car",
-    artist: "Tracy Chapman",
-    album: "Tracy Chapman",
-    durationSec: 286,
-    currentSec: 89,
-    isPlaying: true,
-    live: false,
+    title: "",
+    artist: "",
+    album: "",
+    durationSec: 0,
+    currentSec: 0,
+    isPlaying: false,
+    live: false,  
   };
   const [state, setState] = useState<NowPlayingState>(fallback);
 
@@ -1300,7 +1300,7 @@ function NowPlayingCard({ theme = "dark" }: { theme?: Theme }) {
 
   // Empty live state: Spotify returned no track. Render a minimal
   // "nothing playing" card instead of a fake track + progress bar.
-  if (track.live && !track.title) {
+  if (!track.title) {
     return (
       <div className="flex flex-col items-center gap-4 px-2 py-8">
         {/* Empty muted album frame */}
@@ -1375,7 +1375,7 @@ function NowPlayingCard({ theme = "dark" }: { theme?: Theme }) {
               : (track.url
                   ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#1db954]">last played · spotify ↗</a>
                   : "last played · spotify"))
-          : "preview · configure SPOTIFY_REFRESH_TOKEN in .env.local"}
+          : "Rohan isn't listening to anything right now."}
       </div>
     </div>
   );
