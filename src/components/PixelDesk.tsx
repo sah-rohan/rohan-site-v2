@@ -7,6 +7,7 @@ import {
   drawBookshelf, drawPhone, drawNotebook,
   drawHangingHeadphones, drawHangingShoes, drawTinyGuitar,
   drawChargerBrick, drawChargerCable,
+  drawTennisRacket, drawTennisBall, drawSoccerBall, drawBasketball,
   ScreenRect,
 } from "./pixel/objects";
 import { drawSprite, SPRITE_DEFS } from "./pixel/sprites";
@@ -43,6 +44,8 @@ const ZONES: Zone[] = [
   { id: "interests",  x: 408, y: 286, w: 88,  h: 60,  label: "INTERESTS" },
   // Hanging headphones under desk (now-playing / Apple Music placeholder)
   { id: "nowplaying", x: 318, y: 286, w: 56,  h: 56,  label: "♫ NOW PLAYING" },
+  // Tennis racket on floor — sports takes / GOATs (desktop only)
+  { id: "sports",     x: 210, y: 340, w: 30,  h: 60,  label: "SPORTS" },
 ];
 
 // Monitor center — true horizontal center of the canvas.
@@ -90,6 +93,15 @@ export default function PixelDesk() {
 
   // Weather — toggleable live rain in the window background.
   const [raining, setRaining] = useState(false);
+
+  const [soccerX, setSoccerX] = useState(395);
+  const [soccerAngle, setSoccerAngle] = useState(0);
+  const soccerTargetRef = useRef(395);
+  const soccerRafRef = useRef<number | null>(null);
+  const SOCCER_MIN = 280;
+  const SOCCER_MAX = 460;
+  const SOCCER_R = 10;
+  const SOCCER_ROLL_STEP = 30;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenRectRef = useRef<ScreenRect | null>(null);
   const [screenRect, setScreenRect] = useState<ScreenRect | null>(null);
@@ -201,12 +213,16 @@ export default function PixelDesk() {
                      laptopRightPortX, laptopRightPortY,
                      DESK_TOP_Y, 590);
 
-    // Under-desk items — all in the floor area between the desk legs.
-    drawBookshelf(ctx, 90, CH - 6);            // small bookshelf under desk (left)
-    drawTinyGuitar(ctx, 180, CH - 8);          // tiny guitar under desk
-    const underY = 290;                        // hook anchor row beneath desk lip
+    drawBookshelf(ctx, 90, CH - 6);
+    drawTinyGuitar(ctx, 180, CH - 8);
+    const underY = 290;
     drawHangingHeadphones(ctx, 340, underY);
     drawHangingShoes(ctx, 450, underY);
+
+    drawTennisRacket(ctx, 225, CH - 4);
+    drawTennisBall(ctx, 250, CH - 4);
+    drawSoccerBall(ctx, soccerX, CH - 4, soccerAngle);
+    drawBasketball(ctx, 490, CH - 4);
 
     // Hover outline only — the label is rendered as an HTML overlay for readability.
     if (hover) {
@@ -218,7 +234,7 @@ export default function PixelDesk() {
     // wallImageReady is intentionally a dep so the canvas redraws when the
     // SF skyline image finishes loading.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hover, screenRect, theme, wallImageReady, monitorSize, isCompact, isPhone, mounted]);
+  }, [hover, screenRect, theme, wallImageReady, monitorSize, isCompact, isPhone, mounted, soccerX, soccerAngle]);
 
   // Repaint when hover changes OR sprites finish loading.
   useEffect(() => { repaint(); }, [repaint, spritesReady]);
@@ -246,6 +262,7 @@ export default function PixelDesk() {
       skills: "skills", tech: "skills", stack: "skills",
       nowplaying: "nowplaying", playing: "nowplaying", "now-playing": "nowplaying", track: "nowplaying",
       journal: "journal", goals: "journal", manifest: "journal", manifestation: "journal", dreams: "journal",
+      sports: "sports", tennis: "sports", soccer: "sports", football: "sports", basketball: "sports", goat: "sports", picks: "sports",
     };
     if (ALIASES[cmd]) {
       const id = ALIASES[cmd];
@@ -354,6 +371,57 @@ export default function PixelDesk() {
     return ZONES.find(z => cx >= z.x && cx <= z.x + z.w && cy >= z.y && cy <= z.y + z.h) || null;
   };
 
+  const SOCCER_CY = CH - 4 - SOCCER_R;
+  const hitSoccer = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return false;
+    const r = canvas.getBoundingClientRect();
+    const x = (clientX - r.left) * (CW / r.width);
+    const y = (clientY - r.top) * (CH / r.height);
+    const dx = x - soccerX;
+    const dy = y - SOCCER_CY;
+    return dx * dx + dy * dy <= (SOCCER_R + 3) * (SOCCER_R + 3);
+  };
+
+  const rollSoccer = (clickClientX: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const r = canvas.getBoundingClientRect();
+    const cx = (clickClientX - r.left) * (CW / r.width);
+    // Push physics: clicking the LEFT side of the ball pushes it RIGHT.
+    const dir = cx < soccerX ? 1 : -1;
+    const next = Math.max(SOCCER_MIN, Math.min(SOCCER_MAX, soccerX + dir * SOCCER_ROLL_STEP));
+    soccerTargetRef.current = next;
+    if (soccerRafRef.current !== null) return;
+    const tick = () => {
+      const target = soccerTargetRef.current;
+      let done = false;
+      setSoccerX(curr => {
+        const delta = target - curr;
+        if (Math.abs(delta) < 0.4) {
+          done = true;
+          return target;
+        }
+        const step = Math.sign(delta) * Math.max(1, Math.abs(delta) * 0.25);
+        // Rolling: angle = arc / radius. Rolling right = positive angle.
+        setSoccerAngle(a => a + step / SOCCER_R);
+        return curr + step;
+      });
+      if (done) {
+        soccerRafRef.current = null;
+      } else {
+        soccerRafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    soccerRafRef.current = requestAnimationFrame(tick);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (soccerRafRef.current !== null) cancelAnimationFrame(soccerRafRef.current);
+    };
+  }, []);
+
   return (
     <div className="absolute inset-0 bg-[#0a0a0a]">
       {/* Fill the full viewport — canvas stretches edge-to-edge on every device. */}
@@ -363,12 +431,6 @@ export default function PixelDesk() {
           width={CW}
           height={CH}
           className="block w-full h-full"
-          style={{
-            imageRendering: "pixelated",
-            cursor: hover ? "pointer" : "crosshair",
-            opacity: mounted ? 1 : 0,
-            transition: "opacity 0.12s ease-out",
-          }}
           onMouseMove={e => {
             if (typing) return;
             const z = eventToZone(e.clientX, e.clientY);
@@ -377,8 +439,19 @@ export default function PixelDesk() {
           onMouseLeave={() => setHover(null)}
           onClick={e => {
             if (typing || active) return;
+            if (hitSoccer(e.clientX, e.clientY)) {
+              rollSoccer(e.clientX);
+              return;
+            }
             const z = eventToZone(e.clientX, e.clientY);
             if (z) playType(z.id);
+          }}
+          style={{
+            imageRendering: "pixelated",
+            cursor: hover ? "pointer" : "crosshair",
+            opacity: mounted ? 1 : 0,
+            transition: "opacity 0.12s ease-out",
+            touchAction: "none",
           }}
         />
         {raining && <RainOverlay enableThunder={theme === "dark"} />}
@@ -689,14 +762,14 @@ function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) 
         }}
       />
 
-      <div className="absolute inset-0 flex justify-center items-end pb-[2vh] pointer-events-none">
+      <div className="absolute inset-0 flex justify-center items-end pb-[6vh] pointer-events-none">
         {/* Phone bezel — true rounded corners, hard pixel drop shadow */}
         <div
           className="relative pointer-events-auto"
           style={{
-            height: "min(82vh, 720px)",
+            height: "min(66vh, 620px)",
             aspectRatio: "9 / 19.5",
-            maxWidth: "78vw",
+            maxWidth: "62vw",
             background: bezel,
             padding: "5px",
             borderRadius: "44px",
@@ -707,7 +780,6 @@ function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) 
             transformOrigin: "bottom center",
           }}
         >
-          {/* Screen */}
           <div
             className="relative w-full h-full overflow-hidden flex flex-col"
             style={{ background: wallpaper, borderRadius: "38px" }}

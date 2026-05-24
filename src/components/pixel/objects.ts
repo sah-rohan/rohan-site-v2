@@ -1019,3 +1019,141 @@ export function drawTinyGuitar(c: Ctx, cx: number, baseY: number) {
   }
 }
 
+
+export function drawTennisRacket(c: Ctx, cx: number, baseY: number) {
+  const headRx = 11;
+  const headRy = 14;
+  const headCy = baseY - headRy;
+  for (let j = -headRy; j <= headRy; j++) {
+    const halfW = Math.round(headRx * Math.sqrt(Math.max(0, 1 - (j * j) / (headRy * headRy))));
+    if (halfW === 0) continue;
+    px(c, cx - halfW, headCy + j, G.g05);
+    px(c, cx + halfW - 1, headCy + j, G.g05);
+    if (j === -headRy || j === headRy) {
+      rect(c, cx - halfW, headCy + j, halfW * 2, 1, G.g05);
+    }
+  }
+  for (let j = -headRy + 2; j <= headRy - 2; j += 2) {
+    const halfW = Math.round((headRx - 1) * Math.sqrt(Math.max(0, 1 - (j * j) / (headRy * headRy))));
+    if (halfW > 1) hline(c, cx - halfW + 1, headCy + j, halfW * 2 - 2, G.paper);
+  }
+  for (let i = -headRx + 2; i <= headRx - 2; i += 2) {
+    const halfH = Math.round((headRy - 1) * Math.sqrt(Math.max(0, 1 - (i * i) / (headRx * headRx))));
+    if (halfH > 1) vline(c, cx + i, headCy - halfH + 1, halfH * 2 - 2, G.paper);
+  }
+  const throatY = headCy - headRy - 3;
+  rect(c, cx - 2, throatY, 4, 4, G.g10);
+  const gripTop = throatY - 18;
+  rect(c, cx - 2, gripTop, 4, 18, A.red);
+  rect(c, cx - 2, throatY - 2, 4, 2, A.redDk);
+  for (let i = 0; i < 4; i++) {
+    hline(c, cx - 2, gripTop + 2 + i * 4, 4, A.redDk);
+  }
+  rect(c, cx - 3, gripTop - 3, 6, 3, G.g15);
+  hline(c, cx - 3, gripTop - 3, 6, G.g30);
+  rect(c, cx - 5, baseY + 1, 10, 1, G.ink);
+}
+
+export function drawTennisBall(c: Ctx, cx: number, baseY: number) {
+  const r = 5;
+  const cy = baseY - r;
+  const ballCol = "#d4ff3a";
+  const ballDk = "#9fbf25";
+  for (let j = -r; j <= r; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    rect(c, cx - halfW, cy + j, halfW * 2, 1, ballCol);
+  }
+  for (let j = -r; j <= 0; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    if (halfW > 0) px(c, cx - halfW + 1, cy + j, "#eaff70");
+  }
+  for (let j = 0; j <= r; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    if (halfW > 0) px(c, cx + halfW - 1, cy + j, ballDk);
+  }
+  for (let i = -r + 1; i <= r - 1; i++) {
+    const dy = Math.round(2 * Math.sin((i / r) * Math.PI * 0.7));
+    px(c, cx + i, cy + dy - 1, G.paper);
+  }
+  rect(c, cx - r, baseY + 1, r * 2, 1, "#080808");
+}
+
+export function drawSoccerBall(c: Ctx, cx: number, baseY: number, angle = 0) {
+  const r = 8;
+  const cy = baseY - r;
+  for (let j = -r; j <= r; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    rect(c, cx - halfW, cy + j, halfW * 2, 1, G.paper);
+  }
+  for (let j = -r; j <= 0; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    if (halfW > 1) px(c, cx - halfW + 1, cy + j, G.white);
+  }
+  for (let j = 0; j <= r; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    if (halfW > 1) px(c, cx + halfW - 1, cy + j, G.g70);
+  }
+  rect(c, cx - 1, cy - 1, 3, 3, G.ink);
+  px(c, cx - 2, cy, G.ink);
+  px(c, cx + 2, cy, G.ink);
+  px(c, cx, cy + 2, G.ink);
+  for (let k = 0; k < 5; k++) {
+    const ang = (k * 72 - 90) * Math.PI / 180 + angle;
+    const ex = Math.round(cx + (r - 1) * Math.cos(ang));
+    const ey = Math.round(cy + (r - 1) * Math.sin(ang));
+    rect(c, ex - 1, ey - 1, 2, 2, G.ink);
+    const sx = Math.round(cx + 2 * Math.cos(ang));
+    const sy = Math.round(cy + 2 * Math.sin(ang));
+    const steps = Math.max(Math.abs(ex - sx), Math.abs(ey - sy));
+    for (let s = 1; s < steps; s++) {
+      const t = s / steps;
+      const x = Math.round(sx + (ex - sx) * t);
+      const y = Math.round(sy + (ey - sy) * t);
+      const dxC = x - cx;
+      const dyC = y - cy;
+      if (dxC * dxC + dyC * dyC <= (r - 1) * (r - 1)) {
+        px(c, x, y, G.ink);
+      }
+    }
+  }
+  rect(c, cx - r, baseY + 1, r * 2, 1, "#080808");
+  rect(c, cx - r + 1, baseY + 2, r * 2 - 2, 1, "#100808");
+}
+
+export function drawBasketball(c: Ctx, cx: number, baseY: number) {
+  const r = 9;
+  const cy = baseY - r;
+  const ball = "#d8702a";
+  const ballHl = "#e89548";
+  const ballDk = "#8a3e10";
+  const seam = "#3a1808";
+  for (let j = -r; j <= r; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    rect(c, cx - halfW, cy + j, halfW * 2, 1, ball);
+  }
+  for (let j = -r; j <= 0; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    if (halfW > 1) px(c, cx - halfW + 1, cy + j, ballHl);
+  }
+  for (let j = 0; j <= r; j++) {
+    const halfW = Math.round(r * Math.sqrt(Math.max(0, 1 - (j * j) / (r * r))));
+    if (halfW > 1) px(c, cx + halfW - 1, cy + j, ballDk);
+  }
+  for (let j = -r + 1; j <= r - 1; j++) {
+    px(c, cx, cy + j, seam);
+  }
+  for (let i = -r + 1; i <= r - 1; i++) {
+    const yOff = Math.round(Math.sin((i / r) * Math.PI * 0.85) * r * 0.3);
+    px(c, cx + i, cy + yOff, seam);
+  }
+  for (let i = -r + 1; i <= 0; i++) {
+    const yOff = Math.round((r - 2) * Math.sqrt(Math.max(0, 1 - ((i + 3) * (i + 3)) / (r * r))));
+    if (yOff > 1) px(c, cx + i, cy - yOff + 1, seam);
+  }
+  for (let i = 0; i <= r - 1; i++) {
+    const yOff = Math.round((r - 2) * Math.sqrt(Math.max(0, 1 - ((i - 3) * (i - 3)) / (r * r))));
+    if (yOff > 1) px(c, cx + i, cy - yOff + 1, seam);
+  }
+  rect(c, cx - r, baseY + 1, r * 2, 1, "#080808");
+  rect(c, cx - r + 1, baseY + 2, r * 2 - 2, 1, "#100808");
+}

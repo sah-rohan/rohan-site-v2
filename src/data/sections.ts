@@ -7,7 +7,8 @@ export type SectionId =
   | "interests"
   | "nowplaying"
   | "skills"
-  | "journal";
+  | "journal"
+  | "sports";
 
 export interface Section {
   id: SectionId;
@@ -275,6 +276,33 @@ that don't have to ship.`,
     · read more than I scroll
     · be the kind of person my
       younger self would have looked up to`,
+  },
+
+  // ─── SPORTS (tennis racket) — personal takes & GOATs ───
+  sports: {
+    id: "sports",
+    title: "SPORTS",
+    cmd: "cat ~/sports.md",
+    accent: "#e0a44a",
+    body: `hot takes & GOATs
+────────────────────────────
+tennis
+  · favorite       Carlos Alcaraz
+  · GOAT           Roger Federer
+  · best forehand  Rafa Nadal
+
+football (soccer)
+  · favorite       Lionel Messi
+  · world cup pick Argentina (back-to-back)
+  · dark horse     Brazil
+
+basketball
+  · GOAT           Michael Jordan
+  · current king   Nikola Jokić
+  · favorite       Stephen Curry
+
+other
+  · running heroes Kipchoge · Hassan`,
   },
 
   // ─── NOW PLAYING (headphones) — live Spotify integration ───
