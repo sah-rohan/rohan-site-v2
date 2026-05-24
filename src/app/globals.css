@@ -66,21 +66,3 @@ html, body {
   transform-origin: top center;
 }
 
-/* Car driving left-to-right across the bridge */
-@keyframes car-lr {
-  0%   { transform: translateX(-4vw); }
-  100% { transform: translateX(104vw); }
-}
-/* Car driving right-to-left */
-@keyframes car-rl {
-  0%   { transform: translateX(104vw) scaleX(-1); }
-  100% { transform: translateX(-4vw)  scaleX(-1); }
-}
-/* Wrapper classes — Tailwind v4 tree-shakes any @keyframes with no
-   consumer class, so these are required to keep the rules shipped. */
-.animate-car-lr {
-  animation: car-lr var(--car-dur, 20s) linear var(--car-delay, 0s) infinite;
-}
-.animate-car-rl {
-  animation: car-rl var(--car-dur, 20s) linear var(--car-delay, 0s) infinite;
-}

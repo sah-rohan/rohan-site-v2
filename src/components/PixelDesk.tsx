@@ -54,11 +54,17 @@ export default function PixelDesk() {
     return param === "light" ? "light" : "dark";
   });
 
-  // Responsive monitor sizing — bigger on small viewports (so terminal stays
-  // usable), smaller on big viewports (so more of the room shows).
-  const [isCompact, setIsCompact] = useState(false);
+  // Two breakpoints: isPhone triggers the dedicated phone-with-apps layout,
+  // isTabletDown just resizes the monitor (so iPads still see the desk scene
+  // but with a bigger monitor so the terminal stays readable).
+  const [isCompact, setIsCompact] = useState(false);  // monitor sizing only
+  const [isPhone,   setIsPhone]   = useState(false);  // dedicated phone scene
   useEffect(() => {
-    const update = () => setIsCompact(window.innerWidth < 820);
+    const update = () => {
+      const w = window.innerWidth;
+      setIsCompact(w < 820);
+      setIsPhone(w < 600);
+    };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -113,11 +119,9 @@ export default function PixelDesk() {
     ctx.imageSmoothingEnabled = false;
 
     drawWall(ctx, theme); // dark: Bay Bridge dusk; light: Golden Gate sunset
-    // On compact (phone) viewports we render just the wall and skip the desk
+    // On phone-sized viewports we render just the wall and skip the desk
     // and its items — the foreground is taken over by the PhoneScreen overlay.
-    if (isCompact) {
-      // Fill below the wall with a soft surface so the phone has a backdrop
-      // that isn't a hard cut to black.
+    if (isPhone) {
       const surfaceCol = theme === "light" ? "#0f0a14" : "#070713";
       ctx.fillStyle = surfaceCol;
       ctx.fillRect(0, DESK_TOP_Y, CW, CH - DESK_TOP_Y);
@@ -347,7 +351,6 @@ export default function PixelDesk() {
             if (z) playType(z.id);
           }}
         />
-        <CarsOverlay theme={theme} />
         {raining && <RainOverlay enableThunder={theme === "dark"} />}
         {isCompact && <PhoneScreen theme={theme} onOpen={id => setActive(id)} />}
         {screenRect && !isCompact && (
@@ -395,211 +398,392 @@ export default function PixelDesk() {
 // Each drop is a thin slanted line with random column, delay, and speed.
 // ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
-// PhoneScreen — mobile-only view. A big iPhone-style mockup leaning
-// against the window. The Bay Bridge view still renders behind/above
-// the phone (the canvas wall is drawn full-width even on compact).
-// 3×3 grid of app icons, one per section. Tap → opens the section modal.
+// App icons — each rendered as a pixel-art SVG with shape-rendering:
+// crispEdges so the rectangles stay sharp. 16×16 logical grid scaled up.
 // ─────────────────────────────────────────────────────────────
-const APPS: { id: SectionId; label: string; emoji: string; bg: string }[] = [
-  { id: "skills",     label: "Skills",   emoji: "⚡", bg: "linear-gradient(135deg,#6aa6ff 0%,#3a78d4 100%)" },
-  { id: "projects",   label: "Projects", emoji: "💻", bg: "linear-gradient(135deg,#2a2a2c 0%,#101012 100%)" },
-  { id: "education",  label: "Books",    emoji: "📚", bg: "linear-gradient(135deg,#e0b46a 0%,#a8782a 100%)" },
-  { id: "experience", label: "Work",     emoji: "💼", bg: "linear-gradient(135deg,#f1efe8 0%,#b8b3a8 100%)" },
-  { id: "music",      label: "Music",    emoji: "🎸", bg: "linear-gradient(135deg,#e84a44 0%,#982020 100%)" },
-  { id: "contact",    label: "Contact",  emoji: "📞", bg: "linear-gradient(135deg,#5ad078 0%,#1f9040 100%)" },
-  { id: "journal",    label: "Journal",  emoji: "📓", bg: "linear-gradient(135deg,#d4a060 0%,#7a4d28 100%)" },
-  { id: "interests",  label: "Hobbies",  emoji: "🏃", bg: "linear-gradient(135deg,#7adc92 0%,#2a8a50 100%)" },
-  { id: "nowplaying", label: "Spotify",  emoji: "🎵", bg: "linear-gradient(135deg,#1ed760 0%,#0d8f3f 100%)" },
-];
+const ICON_BOX: React.CSSProperties = {
+  width: "70%",
+  height: "70%",
+  shapeRendering: "crispEdges",
+  imageRendering: "pixelated" as React.CSSProperties["imageRendering"],
+};
 
-function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) => void }) {
-  const phoneBezel = theme === "light" ? "#1a1a1c" : "#0a0a0c";
-  const screenBg = theme === "light"
-    ? "linear-gradient(180deg,#f0e8e2 0%,#d0bcb0 35%,#9088a8 70%,#3a4860 100%)"
-    : "linear-gradient(180deg,#1a2240 0%,#2a3050 30%,#4a3050 60%,#1a1830 100%)";
-
+// Spotify — green circle + three white arc bands.
+function SpotifyIcon() {
   return (
-    <div className="absolute inset-0 flex items-end justify-center pointer-events-none z-10 px-4 pb-2">
-      <div
-        className="relative pointer-events-auto"
-        style={{
-          // Phone occupies most of phone-viewport height, leaving the bridge above visible.
-          height: "min(82vh, 720px)",
-          aspectRatio: "9 / 19",
-          maxWidth: "92vw",
-          background: phoneBezel,
-          borderRadius: "min(8vw, 44px)",
-          boxShadow: "0 30px 60px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,255,255,0.05) inset",
-          padding: "8px",
-        }}
-      >
-        {/* Phone screen */}
-        <div
-          className="relative w-full h-full overflow-hidden flex flex-col"
-          style={{ borderRadius: "min(7vw, 38px)", background: screenBg }}
-        >
-          {/* Dynamic island */}
-          <div
-            className="absolute left-1/2 -translate-x-1/2 bg-black z-10"
-            style={{
-              top: "10px",
-              width: "min(30%, 110px)",
-              height: "22px",
-              borderRadius: "999px",
-            }}
-          />
-          {/* Status bar */}
-          <div className="flex items-center justify-between px-6 pt-2.5 text-white text-[11px] font-semibold tracking-wide">
-            <span>9:41</span>
-            <span className="opacity-90">·  ·  100%</span>
-          </div>
-          {/* Greeting */}
-          <div className="text-center pt-12 pb-3 select-none">
-            <div className="text-white text-2xl font-semibold tracking-tight drop-shadow-md">
-              rohan.sah
-            </div>
-            <div className="text-white/80 text-[11px] tracking-[0.2em] uppercase mt-1">
-              tap an app
-            </div>
-          </div>
-          {/* App grid */}
-          <div className="flex-1 flex items-center px-5">
-            <div className="grid grid-cols-3 gap-y-5 gap-x-3 w-full">
-              {APPS.map(app => (
-                <button
-                  key={app.id}
-                  onClick={() => onOpen(app.id)}
-                  className="flex flex-col items-center gap-1.5 group"
-                >
-                  <div
-                    className="flex items-center justify-center text-2xl shadow-lg group-active:scale-90 transition-transform"
-                    style={{
-                      width: "min(18vw, 64px)",
-                      height: "min(18vw, 64px)",
-                      borderRadius: "22%",
-                      background: app.bg,
-                      boxShadow:
-                        "0 4px 10px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.18)",
-                    }}
-                  >
-                    {app.emoji}
-                  </div>
-                  <span className="text-white text-[10px] font-medium drop-shadow">
-                    {app.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Home indicator */}
-          <div className="flex justify-center pb-2">
-            <div className="bg-white/80 rounded-full" style={{ width: "34%", height: "4px" }} />
-          </div>
-        </div>
-      </div>
-    </div>
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      {/* Green disc body (octagon-ish for pixel feel) */}
+      <rect x="3" y="1"  width="10" height="14" fill="#1ed760" />
+      <rect x="1" y="3"  width="14" height="10" fill="#1ed760" />
+      <rect x="2" y="2"  width="12" height="12" fill="#1ed760" />
+      {/* Three white "wave" bars curving across */}
+      <rect x="4"  y="5"  width="8" height="1" fill="#fff" />
+      <rect x="4"  y="8"  width="7" height="1" fill="#fff" />
+      <rect x="5"  y="11" width="5" height="1" fill="#fff" />
+    </svg>
+  );
+}
+
+// Phone — green tile with white handset silhouette.
+function PhoneAppIcon() {
+  return (
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      {/* handset shape */}
+      <rect x="3" y="3" width="2" height="2" fill="#fff" />
+      <rect x="4" y="4" width="2" height="2" fill="#fff" />
+      <rect x="5" y="5" width="2" height="2" fill="#fff" />
+      <rect x="6" y="6" width="2" height="2" fill="#fff" />
+      <rect x="7" y="7" width="2" height="2" fill="#fff" />
+      <rect x="8" y="8" width="2" height="2" fill="#fff" />
+      <rect x="9" y="9" width="2" height="2" fill="#fff" />
+      <rect x="10" y="10" width="2" height="2" fill="#fff" />
+      <rect x="11" y="11" width="2" height="2" fill="#fff" />
+      {/* earpiece */}
+      <rect x="3" y="2" width="3" height="1" fill="#fff" />
+      <rect x="2" y="3" width="1" height="2" fill="#fff" />
+      {/* mouthpiece */}
+      <rect x="10" y="13" width="3" height="1" fill="#fff" />
+      <rect x="13" y="11" width="1" height="2" fill="#fff" />
+    </svg>
+  );
+}
+
+// Notes — yellow with red top stripe + lined writing.
+function NotesIcon() {
+  return (
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      <rect x="2" y="2" width="12" height="2" fill="#e8a430" />
+      <rect x="2" y="4" width="12" height="10" fill="#fff8d0" />
+      {/* Spiral bind dots along top */}
+      <rect x="3" y="3" width="1" height="1" fill="#000" />
+      <rect x="6" y="3" width="1" height="1" fill="#000" />
+      <rect x="9" y="3" width="1" height="1" fill="#000" />
+      <rect x="12" y="3" width="1" height="1" fill="#000" />
+      {/* Lines */}
+      <rect x="3" y="6" width="9" height="1" fill="#d0bc7a" />
+      <rect x="3" y="8" width="9" height="1" fill="#d0bc7a" />
+      <rect x="3" y="10" width="7" height="1" fill="#d0bc7a" />
+      <rect x="3" y="12" width="9" height="1" fill="#d0bc7a" />
+    </svg>
+  );
+}
+
+// Apple Books — open book with two pages over orange tile.
+function BooksIcon() {
+  return (
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      {/* spine */}
+      <rect x="7" y="3" width="2" height="11" fill="#5a2c10" />
+      {/* left page */}
+      <rect x="2" y="4" width="5" height="9" fill="#fff" />
+      <rect x="3" y="6" width="3" height="1" fill="#c08a40" />
+      <rect x="3" y="8" width="3" height="1" fill="#c08a40" />
+      <rect x="3" y="10" width="3" height="1" fill="#c08a40" />
+      {/* right page */}
+      <rect x="9" y="4" width="5" height="9" fill="#fff" />
+      <rect x="10" y="6" width="3" height="1" fill="#c08a40" />
+      <rect x="10" y="8" width="3" height="1" fill="#c08a40" />
+      <rect x="10" y="10" width="3" height="1" fill="#c08a40" />
+    </svg>
+  );
+}
+
+// Calendar — white tile, red "JAN" top bar, big day number.
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      <rect x="1" y="1" width="14" height="14" fill="#fff" stroke="#000" strokeWidth="0" />
+      {/* Red header bar */}
+      <rect x="1" y="1" width="14" height="4" fill="#e34335" />
+      {/* "MON" letters as bars */}
+      <rect x="3" y="2" width="2" height="2" fill="#fff" />
+      <rect x="6" y="2" width="2" height="2" fill="#fff" />
+      <rect x="9" y="2" width="2" height="2" fill="#fff" />
+      <rect x="12" y="2" width="2" height="2" fill="#fff" />
+      {/* Big day number "31" as blocky digits */}
+      <rect x="4" y="7" width="3" height="6" fill="#000" />
+      <rect x="5" y="8" width="1" height="4" fill="#fff" />
+      <rect x="9" y="7" width="3" height="6" fill="#000" />
+      <rect x="10" y="8" width="1" height="1" fill="#fff" />
+      <rect x="10" y="10" width="1" height="1" fill="#fff" />
+      <rect x="10" y="12" width="1" height="1" fill="#fff" />
+    </svg>
+  );
+}
+
+// Fitness — black tile, three concentric "rings" (red/green/blue).
+function FitnessIcon() {
+  return (
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      {/* outer red ring */}
+      <rect x="2" y="2" width="12" height="12" fill="#fa2d48" />
+      <rect x="4" y="4" width="8" height="8" fill="#000" />
+      {/* middle green ring */}
+      <rect x="4" y="4" width="8" height="8" fill="#9bff00" />
+      <rect x="5" y="5" width="6" height="6" fill="#000" />
+      {/* inner blue ring */}
+      <rect x="5" y="5" width="6" height="6" fill="#00d6ff" />
+      <rect x="6" y="6" width="4" height="4" fill="#000" />
+    </svg>
+  );
+}
+
+// Files — blue folder.
+function FilesIcon() {
+  return (
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      {/* folder tab */}
+      <rect x="2" y="4" width="5" height="2" fill="#1f7fdb" />
+      <rect x="3" y="3" width="3" height="1" fill="#1f7fdb" />
+      {/* folder body */}
+      <rect x="1" y="5" width="14" height="9" fill="#3a9be8" />
+      <rect x="2" y="6" width="12" height="7" fill="#1f7fdb" />
+      {/* highlight stripe */}
+      <rect x="2" y="6" width="12" height="1" fill="#7ec5ff" />
+    </svg>
+  );
+}
+
+// Xcode — blue tile with white hammer.
+function XcodeIcon() {
+  return (
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      {/* hammer head */}
+      <rect x="9" y="3" width="5" height="2" fill="#fff" />
+      <rect x="10" y="2" width="3" height="1" fill="#fff" />
+      <rect x="10" y="5" width="3" height="1" fill="#fff" />
+      {/* hammer handle */}
+      <rect x="6" y="6" width="1" height="2" fill="#fff" />
+      <rect x="5" y="8" width="1" height="2" fill="#fff" />
+      <rect x="4" y="10" width="1" height="2" fill="#fff" />
+      <rect x="3" y="12" width="1" height="1" fill="#fff" />
+      {/* connector */}
+      <rect x="7" y="5" width="2" height="2" fill="#fff" />
+    </svg>
+  );
+}
+
+// Apple Music — red/pink tile with white musical note.
+function AppleMusicIcon() {
+  return (
+    <svg viewBox="0 0 16 16" style={ICON_BOX}>
+      {/* stem */}
+      <rect x="10" y="3" width="2" height="9" fill="#fff" />
+      {/* second stem */}
+      <rect x="6" y="5" width="2" height="8" fill="#fff" />
+      {/* connector beam */}
+      <rect x="6" y="3" width="6" height="2" fill="#fff" />
+      {/* note head 1 (eighth) */}
+      <rect x="4" y="11" width="3" height="2" fill="#fff" />
+      <rect x="3" y="12" width="1" height="2" fill="#fff" />
+      <rect x="4" y="13" width="3" height="1" fill="#fff" />
+      {/* note head 2 */}
+      <rect x="9" y="10" width="3" height="2" fill="#fff" />
+      <rect x="8" y="11" width="1" height="2" fill="#fff" />
+      <rect x="9" y="12" width="3" height="1" fill="#fff" />
+    </svg>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// CarsOverlay — tiny cars driving across the Bay Bridge deck.
-// Two lanes (left→right and right→left) with multiple cars, randomized
-// speed + delay so they don't all move in lockstep. Positioned at the
-// bridge-deck y-band of the canvas (~41% from top, accounting for the
-// procedural drawBayBridge layout).
+// PhoneScreen — phone-only view (<600px viewport).
+// Pixel-art phone leaning at a slight angle on a charging stand placed on a
+// floor. The Bay Bridge wall view shows behind/above. 9 real Apple-style
+// app icons in a 3×3 grid, drawn as pixel-art SVGs. Tap → opens section modal.
 // ─────────────────────────────────────────────────────────────
-function CarsOverlay({ theme }: { theme: Theme }) {
-  const cars = useMemo(() => {
-    // Deterministic pseudo-random so the cars don't reshuffle on every render.
-    return Array.from({ length: 8 }, (_, i) => {
-      const r1 = ((i * 9301 + 49297) % 233280) / 233280;
-      const r2 = ((i * 7901 + 13127) % 233280) / 233280;
-      return {
-        dir: i % 2 === 0 ? "lr" as const : "rl" as const,
-        duration: 14 + r1 * 12,
-        delay: -r2 * 14,           // negative so cars are mid-route on mount
-        offsetY: (r2 - 0.5) * 4,   // tiny vertical jitter for two-deck illusion
-      };
-    });
-  }, []);
 
-  // Cars drive on the bridge deck. The deck sits roughly at 0.66 × DESK_TOP_Y
-  // of the canvas, and DESK_TOP_Y is ~63% of CH — so the deck band is at
-  // ≈ 41.5% of the viewport height.
-  const carColors = theme === "dark"
-    ? ["#1a1a22", "#2a2438", "#1f1a2a", "#181620"]
-    : ["#3a2418", "#4a2820", "#502a18", "#3a2218"];
-  const headlight = theme === "dark" ? "#fff4c8" : "transparent";
-  const taillight = theme === "dark" ? "#ff5a3a" : "transparent";
+// Each AppIcon is its own component so we can render real Apple-app
+// silhouettes (Spotify / Phone / Notes / Books / Calendar / Fitness / Files /
+// Xcode / Apple Music) instead of generic emoji squares.
+const APP_LIST: { id: SectionId; label: string; Icon: React.FC; bg: string }[] = [
+  { id: "skills",     label: "Files",    Icon: FilesIcon,     bg: "#f5f5f7" },
+  { id: "projects",   label: "Xcode",    Icon: XcodeIcon,     bg: "#1e6dd8" },
+  { id: "education",  label: "Books",    Icon: BooksIcon,     bg: "#f4c168" },
+  { id: "experience", label: "Calendar", Icon: CalendarIcon,  bg: "#ffffff" },
+  { id: "music",      label: "Spotify",  Icon: SpotifyIcon,   bg: "#000000" },
+  { id: "contact",    label: "Phone",    Icon: PhoneAppIcon,  bg: "#34c759" },
+  { id: "journal",    label: "Notes",    Icon: NotesIcon,     bg: "#fff6b0" },
+  { id: "interests",  label: "Fitness",  Icon: FitnessIcon,   bg: "#000000" },
+  { id: "nowplaying", label: "Music",    Icon: AppleMusicIcon,bg: "#fa233b" },
+];
+
+function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) => void }) {
+  // Bezel + wallpaper colors. Theme-aware.
+  const bezel = "#0a0a0c";
+  const wallpaper = theme === "light"
+    ? "linear-gradient(180deg,#e8c8c0 0%,#b0a0b8 50%,#3a4262 100%)"
+    : "linear-gradient(180deg,#1a2240 0%,#2a2848 35%,#4a2848 65%,#1a1428 100%)";
 
   return (
-    <div
-      className="absolute inset-x-0 pointer-events-none overflow-hidden"
-      style={{
-        top: "39%",
-        height: "8%",
-      }}
-    >
-      {cars.map((c, i) => {
-        const carColor = carColors[i % carColors.length];
-        return (
+    <div className="absolute inset-0 z-10 pointer-events-none" style={{ imageRendering: "pixelated" as React.CSSProperties["imageRendering"] }}>
+      {/* ── Floor: dark plank strip with seam line, below where the phone sits ── */}
+      <div
+        className="absolute inset-x-0 bottom-0"
+        style={{
+          height: "16%",
+          background:
+            "linear-gradient(180deg,#1a1014 0%,#0a060c 100%)",
+          boxShadow: "inset 0 2px 0 rgba(0,0,0,0.7), inset 0 4px 0 rgba(40,30,30,0.5)",
+        }}
+      />
+      {/* Floor lines (plank seams) — solid horizontal lines for pixel-art feel */}
+      <div
+        className="absolute inset-x-0 pointer-events-none"
+        style={{
+          bottom: "11%",
+          height: "2px",
+          background: "rgba(255,255,255,0.04)",
+        }}
+      />
+      <div
+        className="absolute inset-x-0 pointer-events-none"
+        style={{
+          bottom: "5%",
+          height: "2px",
+          background: "rgba(255,255,255,0.03)",
+        }}
+      />
+
+      {/* ── Charging stand — small angled wedge on the floor ── */}
+      <div
+        className="absolute left-1/2 pointer-events-none"
+        style={{
+          bottom: "6%",
+          width: "40vw",
+          maxWidth: "240px",
+          height: "20px",
+          transform: "translateX(-50%)",
+          background: "#2a2025",
+          boxShadow: "0 3px 0 #0a0608, inset 0 2px 0 #3a3038",
+        }}
+      />
+      {/* Stand top angled lip — appears as a pixelated wedge */}
+      <div
+        className="absolute left-1/2 pointer-events-none"
+        style={{
+          bottom: "calc(6% + 20px)",
+          width: "44vw",
+          maxWidth: "260px",
+          height: "8px",
+          transform: "translateX(-50%)",
+          background: "#3a2830",
+          boxShadow: "inset 0 2px 0 #4a3640",
+        }}
+      />
+      {/* Charging cable trailing off the bottom of the phone */}
+      <div
+        className="absolute left-1/2 pointer-events-none"
+        style={{
+          bottom: "2%",
+          width: "4px",
+          height: "8%",
+          background: "#f4f4f4",
+          transform: "translateX(-50%) translateX(20vw) rotate(8deg)",
+          boxShadow: "1px 0 0 #b0b0b0",
+        }}
+      />
+
+      {/* ── Phone (pixelated chunky frame, leaning slightly) ── */}
+      <div className="absolute inset-0 flex items-end justify-center px-4 pb-[10%] pointer-events-none">
+        <div
+          className="relative pointer-events-auto"
+          style={{
+            height: "min(76vh, 700px)",
+            aspectRatio: "9 / 19",
+            maxWidth: "82vw",
+            background: bezel,
+            padding: "6px",
+            // Pixel-art aesthetic: hard right angles, hard outer ring, slight tilt
+            border: "2px solid #000",
+            boxShadow:
+              "0 0 0 2px #1a1a1c, 4px 4px 0 #000, 8px 18px 0 rgba(0,0,0,0.35)",
+            transform: "rotate(-1.6deg)",
+            transformOrigin: "bottom center",
+            imageRendering: "pixelated" as React.CSSProperties["imageRendering"],
+          }}
+        >
+          {/* Screen */}
           <div
-            key={i}
-            className={`absolute animate-car-${c.dir}`}
+            className="relative w-full h-full overflow-hidden flex flex-col"
             style={{
-              top: `${30 + c.offsetY * 8}%`,
-              left: 0,
-              width: "2.5vw",
-              minWidth: "30px",
-              height: "1vw",
-              minHeight: "12px",
-              ["--car-dur" as string]: `${c.duration}s`,
-              ["--car-delay" as string]: `${c.delay}s`,
-              willChange: "transform",
-            } as React.CSSProperties}
+              background: wallpaper,
+              border: "1px solid #161618",
+            }}
           >
-            {/* car body */}
+            {/* Dynamic island — pixelated pill */}
             <div
-              className="absolute inset-0 rounded-[2px]"
-              style={{ background: carColor, boxShadow: "0 1px 0 rgba(0,0,0,0.4)" }}
-            />
-            {/* roof / windshield highlight */}
-            <div
-              className="absolute"
+              className="absolute left-1/2 -translate-x-1/2 z-10"
               style={{
-                top: "20%", left: "25%",
-                width: "50%", height: "45%",
-                background: theme === "dark" ? "#5a5a68" : "#9a6840",
-                borderRadius: "1px",
+                top: "8px",
+                width: "32%",
+                maxWidth: "118px",
+                height: "20px",
+                background: "#000",
+                border: "1px solid #1a1a1a",
+                borderRadius: "0px",
+                boxShadow: "inset 1px 1px 0 #2a2a2a",
               }}
             />
-            {/* headlight (front of car, in the direction of motion) */}
+            {/* Status bar */}
             <div
-              className="absolute rounded-full"
-              style={{
-                top: "35%",
-                right: c.dir === "lr" ? "-2px" : "auto",
-                left: c.dir === "rl" ? "-2px" : "auto",
-                width: "3px", height: "3px",
-                background: headlight,
-                boxShadow: theme === "dark" ? "0 0 6px 2px #fff4c8" : "none",
-              }}
-            />
-            {/* taillight */}
-            <div
-              className="absolute rounded-full"
-              style={{
-                top: "35%",
-                left: c.dir === "lr" ? "-1px" : "auto",
-                right: c.dir === "rl" ? "-1px" : "auto",
-                width: "2px", height: "2px",
-                background: taillight,
-                boxShadow: theme === "dark" ? "0 0 4px #ff5a3a" : "none",
-              }}
-            />
+              className="flex items-center justify-between px-5 pt-2 text-white font-mono select-none"
+              style={{ fontSize: "11px", letterSpacing: "0.04em" }}
+            >
+              <span>9:41</span>
+              <span className="opacity-90">▮▮▮▮ 100%</span>
+            </div>
+            {/* Greeting */}
+            <div className="text-center pt-10 pb-1 select-none">
+              <div className="text-white font-mono font-bold tracking-tight" style={{ fontSize: "18px" }}>
+                rohan.sah
+              </div>
+              <div className="text-white/70 font-mono uppercase mt-1" style={{ fontSize: "9px", letterSpacing: "0.22em" }}>
+                tap an app
+              </div>
+            </div>
+            {/* App grid */}
+            <div className="flex-1 flex items-center px-4">
+              <div className="grid grid-cols-3 gap-y-4 gap-x-2 w-full">
+                {APP_LIST.map(app => {
+                  const Icon = app.Icon;
+                  return (
+                    <button
+                      key={app.id}
+                      onClick={() => onOpen(app.id)}
+                      className="flex flex-col items-center gap-1 group"
+                    >
+                      <div
+                        className="flex items-center justify-center group-active:translate-y-px transition-transform"
+                        style={{
+                          width: "min(16vw, 58px)",
+                          height: "min(16vw, 58px)",
+                          background: app.bg,
+                          // Pixel-art frame: hard 2px black border, no radius
+                          border: "2px solid #000",
+                          boxShadow: "2px 2px 0 #000, inset 1px 1px 0 rgba(255,255,255,0.18)",
+                          imageRendering: "pixelated" as React.CSSProperties["imageRendering"],
+                        }}
+                      >
+                        <Icon />
+                      </div>
+                      <span
+                        className="text-white font-mono"
+                        style={{ fontSize: "9px", textShadow: "1px 1px 0 #000" }}
+                      >
+                        {app.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Home indicator */}
+            <div className="flex justify-center pb-2">
+              <div style={{ width: "34%", height: "3px", background: "#fff", border: "1px solid #000" }} />
+            </div>
           </div>
-        );
-      })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -994,7 +1178,7 @@ function useNowPlaying(): NowPlayingState {
           currentSec?: number;
         };
         if (!data.configured) return; // keep showing the fallback preview
-        if (!data.isPlaying || !data.title) {
+        if (!data.title) {
           setState({ ...fallback, live: true, isPlaying: false });
           return;
         }
@@ -1043,6 +1227,7 @@ function NowPlayingCard({ theme = "dark" }: { theme?: Theme }) {
             : "0 20px 60px rgba(0,0,0,0.6), inset 0 0 80px rgba(255,255,255,0.04)",
         }}
       />
+      
       <div className="text-center w-full">
         <div className="text-2xl sm:text-3xl font-semibold tracking-tight" style={{ color: t.title }}>{track.title}</div>
         <div className="text-base mt-1" style={{ color: t.artist }}>{track.artist}</div>

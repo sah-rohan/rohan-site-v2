@@ -20,45 +20,32 @@ export interface Section {
 export const SECTIONS: Record<SectionId, Section> = {
   // ─── SKILLS (mouse) ─── shaped like a Rohan.json file ───
   skills: {
-    id: "skills",
-    title: "SKILLS",
-    cmd: "cat ~/Rohan.json",
-    accent: "#7aa8d8",
-    body: `A Software Engineer
-A CS student
+  id: "skills",
+  title: "SKILLS",
+  cmd: "cat ~/Rohan.json",
+  accent: "#7aa8d8",
+  body: `a software engineer
+────────────────────────────
+languages
+  · TypeScript   · Python
+  · Java         · C / C++
+  · Rust         · Go
 
-Rohan.json
-{
-  Age: "19",
-  Current_Role: [
-    "Student SWE @ John Deere",
-    "Research Assistant @ UCSF",
-    "3rd Year CS student @ ISU"
-  ],
-  Languages: [
-    "TypeScript",
-    "Python",
-    "Java",
-    "C / C++",
-    "Rust",
-    "Go"
-  ],
-  Libraries: [
-    "SpringBoot",
-    "React",
-    "Node.js"
-  ],
-  Cloud_DevOps: [
-    "AWS",
-    "Azure",
-    "IaC",
-    "Jenkins"
-  ],
-  Hobbies: [
-    "Tennis", "Running", "Music"
-  ]
-}`,
-  },
+libraries & frameworks
+  · React        · Node.js
+  · Spring Boot
+
+cloud & devops
+  · AWS          · Azure
+  · IaC          · Jenkins
+
+currently obsessed with
+  · distributed systems
+  · scalable system design
+  · making things fast`,
+},
+
+  
 
   // ─── MUSIC (tiny guitar) ─── currently playing + influences ───
   music: {
@@ -138,26 +125,31 @@ LeetCode Tracker
     cmd: "cat ~/education.md",
     accent: "#c8a85a",
     body: `Iowa State University
-Aug 2023 – Dec 2026
+Aug 2023 – May 2027
 ────────────────────────────
 B.S. Computer Science
 Minor in Applied Mathematics
 
 Coursework
-  Math 265   Multivariable Calculus
-  Math 267   Differential Equations
-  COM S 227  Object-Oriented Programming
-  COM S 228  Data Structures
-  COM S 230  Discrete Math for Computing
-  COM S 309  Software Development Practices
-  COM S 311  Analysis of Algorithms
-  COM S 321  Computer Architecture & Org
-  COM S 327  Advanced C / C++
-  COM S 331  Theory of Computing
-  COM S 342  Principles of Programming Languages
-  COM S 362  Object-Oriented Analysis & Design
-  COM S 363  Introduction to Databases
-  COM S 419  Software Testing`,
+  Math 2650   Multivariable Calculus
+  Math 2670   Differential Equations
+  COMS 2270  Object-Oriented Programming
+  COMS 2280  Data Structures
+  COMS 2300  Discrete Math for Computing
+  COMS 3090  Software Development Practices
+  COMS 3110  Analysis of Algorithms
+  COMS 3190  User Interfaces
+  COMS 3210  Computer Architecture & Org
+  COMS 3270  Advanced C / C++
+  COMS 3310  Theory of Computing
+  COMS 3420  Principles of Programming Languages
+  COMS 3520  Operating Systems
+  COMS 3620  Object-Oriented Analysis & Design
+  COMS 3630  Introduction to Databases
+  COMS 4190  Software Testing
+  COMS 4020  Senior Design w/ Business Client
+  COMS 4540  Distributed Systems`
+  ,
   },
 
   // ─── EXPERIENCE (keyboard) ─── work history ───
@@ -174,7 +166,7 @@ John Deere                                Present
 
 UCSF                                      Present
   Undergraduate Research Assistant
-  🩺  Digital twins for healthcare
+  🩺  Digital twins for healthcare & Semi automated meta analysis
 
 Ivy College of Business                   Present
   Software Engineering Research Assistant
@@ -213,7 +205,7 @@ MindZone Learning                         Summer 22 / Summer 23
     accent: "#7aa8d8",
     body: `get in touch
 ────────────────────────────
-email     rohan.sah@example.com
+email     rohan.k.sah@gmail.com
 github    github.com/sah-rohan
 linkedin  linkedin.com/in/rohan-sah
 
@@ -231,7 +223,6 @@ and interesting problems.`,
 ────────────────────────────
 running
   · 5K PR     17:00
-  · ankeny trail regular
 
 rubik's cube
   · 3×3 best  28s
@@ -255,20 +246,20 @@ that don't have to ship.`,
 software / craft
   · ship one piece of infra real engineers
     rely on without knowing my name
-  · contribute to an open-source project
-    used by thousands
-  · grow into a staff-level engineer who
-    cares more about clarity than cleverness
-  · start a company that earns its keep
+  · contribute to 6 open-source project
+    used by thousands by the end of 
+    the summer
+  · grow into a staff-level engineer building
+    quality tools fors millions
+  · start a unicorn company
 
 music / craft
-  · finish recording a small EP — just
-    the songs that won't leave me alone
+  · finish recording a small EP 
   · write one song that helps someone
     through a hard night
   · play a small live set somewhere
     that actually matters to me
-  · keep learning piano voicings —
+  · keep learning piano voicings,
     quietly, every week
 
 life / craft
