@@ -258,7 +258,7 @@ that don't have to ship.`,
       used by thousands this summer
     · grow into a staff-level engineer
       building tools that matter at scale
-    · start a unicorn
+    · build a unicorn software company
 
   music
     · finish recording a small EP
