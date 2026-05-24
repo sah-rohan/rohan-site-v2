@@ -51,15 +51,11 @@ const MONITOR_CX = 320;
 type Theme = "dark" | "light";
 
 export default function PixelDesk() {
-  // SSR-safe: server + first client paint both use "dark". Post-mount we
-  // check the URL param so ?theme=light still works for shareable links.
   const [theme, setTheme] = useState<Theme>("light");
   useEffect(() => {
     const param = new URLSearchParams(window.location.search).get("theme");
-    if (param === "light") {
-      // Defer to a microtask so React doesn't flag a cascading render inside
-      // the effect body itself.
-      queueMicrotask(() => setTheme("light"));
+    if (param === "dark") {
+      queueMicrotask(() => setTheme("dark"));
     }
   }, []);
 
@@ -693,14 +689,14 @@ function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) 
         }}
       />
 
-      <div className="absolute inset-0 flex justify-center items-end pb-[6vh] pointer-events-none">
+      <div className="absolute inset-0 flex justify-center items-end pb-[2vh] pointer-events-none">
         {/* Phone bezel — true rounded corners, hard pixel drop shadow */}
         <div
           className="relative pointer-events-auto"
           style={{
-            height: "min(66vh, 620px)",
+            height: "min(82vh, 720px)",
             aspectRatio: "9 / 19.5",
-            maxWidth: "62vw",
+            maxWidth: "78vw",
             background: bezel,
             padding: "5px",
             borderRadius: "44px",
@@ -721,20 +717,21 @@ function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) 
             <div
               className="absolute left-1/2 -translate-x-1/2"
               style={{
-                top: "10px",
-                width: "22%",
-                maxWidth: "84px",
-                minWidth: "62px",
-                height: "22px",
+                top: "4px",
+                width: "26%",
+                maxWidth: "100px",
+                minWidth: "72px",
+                height: "26px",
                 background: "#000",
                 borderRadius: "9999px",
+                boxShadow: "0 0 0 2px #000",
                 zIndex: 1,
               }}
             />
             {/* Status bar — pixel divs; z-index above the island so the
                 cellular/wifi icons never get covered by it. */}
             <div
-              className="flex items-center justify-between px-4 pt-3 text-white select-none relative"
+              className="flex items-center justify-between px-5 pt-2.5 text-white select-none relative"
               style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "-0.01em", zIndex: 2 }}
             >
               <span>9:41</span>
