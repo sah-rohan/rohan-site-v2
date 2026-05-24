@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk } from "./pixel/scene";
 import {
   drawMonitor, drawTerminalBackground, drawMacBook, drawKeyboard, drawMouse,
-  drawBookshelf, drawPhone,
+  drawBookshelf, drawPhone, drawNotebook,
   drawHangingHeadphones, drawHangingShoes, drawTinyGuitar,
   drawChargerBrick, drawChargerCable,
   ScreenRect,
@@ -30,6 +30,8 @@ const ZONES: Zone[] = [
   { id: "education",  x: 90,  y: 300, w: 56,  h: 96,  label: "EDUCATION" },
   // Phone laying flat on desk (contact)
   { id: "contact",    x: 112, y: 250, w: 18,  h: 30,  label: "CONTACT" },
+  // Tiny notebook on desk (journal — manifestation goals)
+  { id: "journal",    x: 136, y: 250, w: 24,  h: 32,  label: "JOURNAL" },
   // Keyboard on desk (experience)
   { id: "experience", x: 178, y: 258, w: 124, h: 18,  label: "EXPERIENCE" },
   // Mouse on pad (skills) — Rohan.json
@@ -79,7 +81,7 @@ export default function PixelDesk() {
   const [terminal, setTerminal] = useState({
     history: [
       "welcome to rohan@portfolio.sh — type a command or click anything",
-      "try: skills · projects · education · experience · music · contact · interests · nowplaying · help",
+      "try: skills · projects · education · experience · music · contact · journal · interests · nowplaying · help",
     ],
     currentCmd: "",
     cursorOn: true,
@@ -125,6 +127,7 @@ export default function PixelDesk() {
 
     // Desk-top items, left → right.
     orProc("phone", 122, DESK_TOP_Y, () => drawPhone(ctx, 122, DESK_TOP_Y));
+    drawNotebook(ctx, 148, DESK_TOP_Y);
 
     // Monitor — sprite version still needs to expose a screen rect for the
     // terminal overlay. If a sprite exists, the screen rect is derived from
@@ -205,6 +208,7 @@ export default function PixelDesk() {
       interests: "interests", hobbies: "interests", run: "interests", running: "interests",
       skills: "skills", tech: "skills", stack: "skills",
       nowplaying: "nowplaying", playing: "nowplaying", "now-playing": "nowplaying", track: "nowplaying",
+      journal: "journal", goals: "journal", manifest: "journal", manifestation: "journal", dreams: "journal",
     };
     if (ALIASES[cmd]) {
       const id = ALIASES[cmd];
@@ -794,59 +798,22 @@ function SectionModal({ id, onClose }: { id: SectionId; onClose: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// NowPlayingCard — Apple Music–style player. Reads the developer JWT from
-// NEXT_PUBLIC_APPLE_MUSIC_TOKEN at runtime. If present, loads MusicKit JS,
-// authorizes, and binds to the live now-playing item. If absent, shows a
-// static "currently on rotation" preview (Fast Car / Beautiful).
-//
-// To go live:
-//   1. Apple Developer → MusicKit identifier + key.
-//   2. Sign a JWT with that key (kid = key id, iss = team id, alg = ES256).
-//   3. Drop the JWT into .env.local as NEXT_PUBLIC_APPLE_MUSIC_TOKEN.
-//   4. Restart the dev server.
+// NowPlayingCard — Spotify-powered now-playing card.
+// Polls /api/now-playing every 15s. The route calls Spotify's Web API
+// server-side using a refresh token, so secrets never leak to the client.
+// Falls back to a static Fast Car preview when the env isn't configured.
 // ─────────────────────────────────────────────────────────────
 interface NowPlayingState {
   title: string;
   artist: string;
   album: string;
   artworkUrl?: string;
+  url?: string;
   durationSec: number;
   currentSec: number;
   isPlaying: boolean;
   live: boolean;
 }
-
-// MusicKit global typings — minimal surface we use here.
-type MusicKitNS = {
-  configure: (opts: { developerToken: string; app: { name: string; build: string } }) => Promise<unknown>;
-  getInstance: () => MusicKitInstance;
-};
-type MusicKitInstance = {
-  authorize: () => Promise<string>;
-  unauthorize: () => Promise<void>;
-  nowPlayingItem?: NowPlayingItem | null;
-  isPlaying: boolean;
-  currentPlaybackTime: number;
-  currentPlaybackDuration: number;
-  addEventListener: (event: string, cb: () => void) => void;
-  removeEventListener: (event: string, cb: () => void) => void;
-  play: () => Promise<void>;
-  pause: () => void;
-  skipToNextItem: () => void;
-  skipToPreviousItem: () => void;
-};
-type NowPlayingItem = {
-  title?: string;
-  artistName?: string;
-  albumName?: string;
-  artworkURL?: string;
-  attributes?: {
-    artwork?: { url?: string };
-    name?: string;
-    artistName?: string;
-    albumName?: string;
-  };
-};
 
 function useNowPlaying(): NowPlayingState {
   const fallback: NowPlayingState = {
@@ -861,73 +828,47 @@ function useNowPlaying(): NowPlayingState {
   const [state, setState] = useState<NowPlayingState>(fallback);
 
   useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_APPLE_MUSIC_TOKEN;
-    if (!token) return; // stay on static preview
-
-    let music: MusicKitInstance | null = null;
     let cancelled = false;
-
-    const loadScript = () =>
-      new Promise<void>((resolve, reject) => {
-        if (typeof window === "undefined") return reject(new Error("ssr"));
-        const w = window as unknown as { MusicKit?: MusicKitNS };
-        if (w.MusicKit) return resolve();
-        const s = document.createElement("script");
-        s.src = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error("musickit script load failed"));
-        document.head.appendChild(s);
-      });
-
-    const syncFromInstance = () => {
-      if (!music || cancelled) return;
-      const item = music.nowPlayingItem;
-      if (!item) return;
-      const attr = item.attributes || {};
-      const artworkRaw = attr.artwork?.url ?? item.artworkURL;
-      const artworkUrl = artworkRaw
-        ? artworkRaw.replace("{w}", "400").replace("{h}", "400").replace("{f}", "jpg")
-        : undefined;
-      setState({
-        title: attr.name ?? item.title ?? "—",
-        artist: attr.artistName ?? item.artistName ?? "",
-        album: attr.albumName ?? item.albumName ?? "",
-        artworkUrl,
-        durationSec: Math.round(music.currentPlaybackDuration || 0),
-        currentSec: Math.round(music.currentPlaybackTime || 0),
-        isPlaying: !!music.isPlaying,
-        live: true,
-      });
-    };
-
-    (async () => {
+    const fetchOnce = async () => {
       try {
-        await loadScript();
-        const w = window as unknown as { MusicKit?: MusicKitNS };
-        if (!w.MusicKit) return;
-        await w.MusicKit.configure({
-          developerToken: token,
-          app: { name: "rohan.sah portfolio", build: "1.0" },
+        const res = await fetch("/api/now-playing");
+        if (!res.ok || cancelled) return;
+        const data = await res.json() as {
+          configured?: boolean;
+          isPlaying?: boolean;
+          title?: string;
+          artist?: string;
+          album?: string;
+          artworkUrl?: string;
+          url?: string;
+          durationSec?: number;
+          currentSec?: number;
+        };
+        if (!data.configured) return; // keep showing the fallback preview
+        if (!data.isPlaying || !data.title) {
+          setState({ ...fallback, live: true, isPlaying: false });
+          return;
+        }
+        setState({
+          title: data.title ?? "—",
+          artist: data.artist ?? "",
+          album: data.album ?? "",
+          artworkUrl: data.artworkUrl,
+          url: data.url,
+          durationSec: data.durationSec ?? 0,
+          currentSec: data.currentSec ?? 0,
+          isPlaying: data.isPlaying ?? false,
+          live: true,
         });
-        music = w.MusicKit.getInstance();
-        syncFromInstance();
-        music.addEventListener("nowPlayingItemDidChange", syncFromInstance);
-        music.addEventListener("playbackStateDidChange", syncFromInstance);
-        music.addEventListener("playbackTimeDidChange", syncFromInstance);
-      } catch (err) {
-        console.warn("[apple music] init failed:", err);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (music) {
-        music.removeEventListener("nowPlayingItemDidChange", syncFromInstance);
-        music.removeEventListener("playbackStateDidChange", syncFromInstance);
-        music.removeEventListener("playbackTimeDidChange", syncFromInstance);
+      } catch {
+        /* network blip — keep last known state */
       }
     };
+    fetchOnce();
+    const id = window.setInterval(fetchOnce, 15000);
+    return () => { cancelled = true; window.clearInterval(id); };
+    // fallback is stable per render; intentional empty dep array
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return state;
@@ -966,7 +907,7 @@ function NowPlayingCard() {
         <div className="h-1 bg-neutral-800 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all"
-            style={{ width: `${pct}%`, background: "#fa233b" }}
+            style={{ width: `${pct}%`, background: "#1db954" }}
           />
         </div>
         <div className="flex justify-between text-xs text-neutral-500 mt-1.5 tabular-nums">
@@ -984,7 +925,11 @@ function NowPlayingCard() {
       </div>
       {/* Status footer */}
       <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-600 mt-4">
-        {track.live ? "live · apple music" : "preview · drop NEXT_PUBLIC_APPLE_MUSIC_TOKEN to go live"}
+        {track.live
+          ? (track.url
+              ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#1db954]">live · spotify ↗</a>
+              : "live · spotify")
+          : "preview · configure SPOTIFY_REFRESH_TOKEN in .env.local"}
       </div>
     </div>
   );

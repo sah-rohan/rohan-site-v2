@@ -83,7 +83,6 @@ export function drawMonitor(
   const bezelSh   = theme === "light" ? G.g55 : G.ink;
   const bezelInk  = theme === "light" ? G.g65 : G.g05;
   const chinSh    = theme === "light" ? G.g70 : G.g20;
-  const chinDot   = theme === "light" ? G.g60 : G.g05;
   const standBody = theme === "light" ? G.g75 : G.g15;
   const standDk   = theme === "light" ? G.g45 : G.g05;
   const standHl   = theme === "light" ? G.g90 : G.g30;
@@ -909,6 +908,50 @@ function drawNikeSwoosh(c: Ctx, x: number, y: number, w: number, h: number, mirr
   px(c, x + (mirrored ? w - 7 : 7), y + 6, hl);
 }
 /* eslint-enable @typescript-eslint/no-unused-vars */
+
+// ─────────────────────────────────────────────────────────────
+// TINY NOTEBOOK — small bound journal sitting flat on the desk.
+// Spiral binding on the left, lined pages, ribbon bookmark, leather cover.
+// (cx, deskTopY) — cx is horizontal center, top edge sits on desk.
+// ─────────────────────────────────────────────────────────────
+export function drawNotebook(c: Ctx, cx: number, deskTopY: number) {
+  const w = 22, h = 30;
+  const x = cx - w / 2;
+  const y = deskTopY + 1;
+  // Leather cover — warm amber/brown
+  rect(c, x, y, w, h, "#7a4d28");
+  // Top edge highlight (light catches the cover)
+  hline(c, x, y, w, "#a06838");
+  hline(c, x, y + 1, w, "#8c5a30");
+  // Side + bottom shadow
+  vline(c, x, y, h, "#8c5a30");
+  vline(c, x + w - 1, y, h, "#4a2f18");
+  hline(c, x, y + h - 1, w, "#3a2410");
+  // Corner rounding
+  px(c, x, y, "#5a3a1c");
+  px(c, x + w - 1, y, "#5a3a1c");
+  px(c, x, y + h - 1, "#2a1808");
+  px(c, x + w - 1, y + h - 1, "#2a1808");
+  // Page edges visible at the right side (cream stack)
+  vline(c, x + w - 2, y + 3, h - 6, "#e8dfc8");
+  vline(c, x + w - 3, y + 3, h - 6, "#d8cfae");
+  // Spiral binding rings on the left edge — small dots
+  for (let i = 0; i < 6; i++) {
+    const ry = y + 4 + i * 4;
+    px(c, x + 1, ry, "#3a3a3a");
+    px(c, x + 2, ry, "#1a1a1a");
+    px(c, x, ry, "#5a5a5a");
+  }
+  // Small embossed title on cover — a thin line
+  hline(c, x + 5, y + 8, 12, "#a06838");
+  hline(c, x + 6, y + 12, 10, "#a06838");
+  // Bookmark ribbon hanging from top
+  rect(c, x + w - 7, y - 2, 2, 7, "#c83a40");
+  px(c, x + w - 7, y + 4, "#8a2028");
+  // Drop shadow on desk
+  hline(c, x + 1, y + h, w - 2, W.dk);
+  hline(c, x + 2, y + h + 1, w - 4, W.d2);
+}
 
 // ─────────────────────────────────────────────────────────────
 // TINY GUITAR UNDER DESK — small leaning acoustic.

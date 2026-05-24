@@ -6,7 +6,8 @@ export type SectionId =
   | "experience"
   | "interests"
   | "nowplaying"
-  | "skills";
+  | "skills"
+  | "journal";
 
 export interface Section {
   id: SectionId;
@@ -243,12 +244,47 @@ building little things
 that don't have to ship.`,
   },
 
-  // ─── NOW PLAYING (headphones) — live Apple Music integration ───
+  // ─── MANIFESTATION JOURNAL (notebook on desk) ───
+  journal: {
+    id: "journal",
+    title: "MANIFESTATION JOURNAL",
+    cmd: "cat ~/journal.md",
+    accent: "#d4a060",
+    body: `quiet bets on the future
+────────────────────────────
+software / craft
+  · ship one piece of infra real engineers
+    rely on without knowing my name
+  · contribute to an open-source project
+    used by thousands
+  · grow into a staff-level engineer who
+    cares more about clarity than cleverness
+  · start a company that earns its keep
+
+music / craft
+  · finish recording a small EP — just
+    the songs that won't leave me alone
+  · write one song that helps someone
+    through a hard night
+  · play a small live set somewhere
+    that actually matters to me
+  · keep learning piano voicings —
+    quietly, every week
+
+life / craft
+  · run a sub-3 marathon
+  · sub-20s rubik's cube
+  · read more than I scroll
+  · be the kind of person my
+    younger self would have wanted to meet`,
+  },
+
+  // ─── NOW PLAYING (headphones) — live Spotify integration ───
   nowplaying: {
     id: "nowplaying",
     title: "NOW PLAYING",
-    cmd: "music.app --now-playing",
-    accent: "#fa233b",
+    cmd: "spotify --now-playing",
+    accent: "#1db954",
     // Modal renders a custom UI; this is just terminal-typing fallback.
     body: `── currently listening ──
 [ track ]   Fast Car
@@ -256,9 +292,10 @@ that don't have to ship.`,
 [ album ]   Tracy Chapman
 [ state ]   ▶ playing
 
-(Apple MusicKit JS integration
- pending — drop the developer
- token into NEXT_PUBLIC_APPLE_MUSIC_TOKEN
+(Spotify Web API integration
+ pending — drop SPOTIFY_CLIENT_ID,
+ SPOTIFY_CLIENT_SECRET, and
+ SPOTIFY_REFRESH_TOKEN into .env.local
  and the modal goes live.)`,
   },
 };
