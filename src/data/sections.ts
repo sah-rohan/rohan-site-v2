@@ -71,7 +71,8 @@ who i grew up on
   · Michael Jackson
   · Tracy Chapman
 
-→ click the headphones for now playing`,
+→ click the headphones to hear the song 
+  I'm listening to`,
   },
 
   // ─── PROJECTS (macbook) ─── full project list ───
