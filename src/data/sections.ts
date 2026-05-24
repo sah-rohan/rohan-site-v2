@@ -94,6 +94,7 @@ Apple FoundationDB  ·  PR #13241
   Added type annotations to the fdb Python bindings
   (~300 lines changed across 4 files).
   Python · Typing · Open Source
+  → github.com/apple/foundationdb/pull/13241
  
 Apache Beam  ·  merged
   Documentation improvements to apache/beam main.
