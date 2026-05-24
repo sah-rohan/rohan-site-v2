@@ -205,36 +205,45 @@ experience: {
 John Deere                                Present
   Student Software Engineer
   🚜  Full-stack SWE at John Deere Financial
+  TypeScript · React · Next.js · AWS · DynamoDB · PostgreSQL
+  Prisma · Express.js · Terraform · Jenkins · Jest · Python
 
 UCSF                                      Present
   Undergraduate Research Assistant
   🩺  Digital twins for healthcare + semi-automated meta-analysis
+  Python · Azure OpenAI · GCP · Pinecone · scikit-learn · NumPy
 
 Indu Sah Foundation                       Present
   Founding Software Engineer (Solo)
   🌏  Built and own the entire codebase (~12.6k lines) for a
       Nepalese-American humanitarian non-profit.
   → indusahfoundation.org
+  Go · Gin · React · PostgreSQL · Redis · Terraform · Azure · Stripe
 
 Ivy College of Business                   Fall 24 / Spring 25
   Software Engineering Research Assistant
   🧳  Full-stack SWE + research for public-good business initiatives
+  Java · Spring Boot · React · Next.js · MongoDB
 
 Iowa State University                     Spring 25
   Undergraduate Teaching Assistant
   📚  TA for CS 1270 — Python problem solving
+  Python
 
 Iowa Legislature                          Summer 24
   Data Science Intern
   📊  Built historic voter data automation software
+  JavaScript · Excel
 
 Gladiators NYC                            Summer 24
   Software Engineering Intern
   📈  Automated product pricing + availability tracking
+  JavaScript · Excel
 
 Iowa State University                     Fall 23 / Spring 24
   Undergraduate Research Assistant
   🛰️  LiDAR sensor defense via deep learning
+  Python · PyTorch · Jupyter
 
 MindZone Learning                         Summer 22 / Summer 23
   Academic Tutor
