@@ -217,8 +217,8 @@ email     rohan.k.sah@gmail.com
 github    github.com/sah-rohan
 linkedin  linkedin.com/in/rohan-sah
 
-open to collabs, coffee,
-and interesting problems.`,
+open to collabs, coffee chats,
+and interesting opportunities.`,
   },
 
   // ─── INTERESTS (shoes) ───
