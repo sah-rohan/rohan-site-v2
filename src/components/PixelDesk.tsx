@@ -767,7 +767,7 @@ function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) 
         <div
           className="relative pointer-events-auto"
           style={{
-            height: "min(66vh, 620px)",
+            height: "min(66dvh, 620px)",
             aspectRatio: "9 / 19.5",
             maxWidth: "62vw",
             background: bezel,
@@ -781,7 +781,7 @@ function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) 
           }}
         >
           <div
-            className="relative w-full h-full overflow-hidden flex flex-col"
+            className="relative w-full h-full overflow-x-hidden flex flex-col"
             style={{ background: wallpaper, borderRadius: "38px" }}
           >
             {/* Dynamic island — clean rounded pill (sized so it never eats
