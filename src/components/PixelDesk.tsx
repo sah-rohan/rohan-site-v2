@@ -119,14 +119,6 @@ export default function PixelDesk() {
     ctx.imageSmoothingEnabled = false;
 
     drawWall(ctx, theme); // dark: Bay Bridge dusk; light: Golden Gate sunset
-    // On phone-sized viewports we render just the wall and skip the desk
-    // and its items — the foreground is taken over by the PhoneScreen overlay.
-    if (isPhone) {
-      const surfaceCol = theme === "light" ? "#0f0a14" : "#070713";
-      ctx.fillStyle = surfaceCol;
-      ctx.fillRect(0, DESK_TOP_Y, CW, CH - DESK_TOP_Y);
-      return;
-    }
     drawFloor(ctx);
     drawDesk(ctx);
 
@@ -614,90 +606,52 @@ function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) 
     ? "linear-gradient(180deg,#e8c8c0 0%,#b0a0b8 50%,#3a4262 100%)"
     : "linear-gradient(180deg,#1a2240 0%,#2a2848 35%,#4a2848 65%,#1a1428 100%)";
 
+  // Phone leans against the monitor on the desk. The desk surface sits
+  // at ~63% of viewport height (DESK_TOP_Y/CH); the phone's bottom rests
+  // there. Phone top reaches up to where the monitor screen begins.
   return (
-    <div className="absolute inset-0 z-10 pointer-events-none" style={{ imageRendering: "pixelated" as React.CSSProperties["imageRendering"] }}>
-      {/* ── Floor: dark plank strip with seam line, below where the phone sits ── */}
+    <div
+      className="absolute inset-0 z-10 pointer-events-none"
+      style={{ imageRendering: "pixelated" as React.CSSProperties["imageRendering"] }}
+    >
+      {/* Charging cable: from phone bottom-left, snakes down across the desk
+          to behind the monitor (off-screen right). White Apple-cable feel. */}
       <div
-        className="absolute inset-x-0 bottom-0"
+        className="absolute pointer-events-none"
         style={{
-          height: "16%",
-          background:
-            "linear-gradient(180deg,#1a1014 0%,#0a060c 100%)",
-          boxShadow: "inset 0 2px 0 rgba(0,0,0,0.7), inset 0 4px 0 rgba(40,30,30,0.5)",
-        }}
-      />
-      {/* Floor lines (plank seams) — solid horizontal lines for pixel-art feel */}
-      <div
-        className="absolute inset-x-0 pointer-events-none"
-        style={{
-          bottom: "11%",
-          height: "2px",
-          background: "rgba(255,255,255,0.04)",
-        }}
-      />
-      <div
-        className="absolute inset-x-0 pointer-events-none"
-        style={{
-          bottom: "5%",
-          height: "2px",
-          background: "rgba(255,255,255,0.03)",
-        }}
-      />
-
-      {/* ── Charging stand — small angled wedge on the floor ── */}
-      <div
-        className="absolute left-1/2 pointer-events-none"
-        style={{
-          bottom: "6%",
-          width: "40vw",
-          maxWidth: "240px",
-          height: "20px",
-          transform: "translateX(-50%)",
-          background: "#2a2025",
-          boxShadow: "0 3px 0 #0a0608, inset 0 2px 0 #3a3038",
-        }}
-      />
-      {/* Stand top angled lip — appears as a pixelated wedge */}
-      <div
-        className="absolute left-1/2 pointer-events-none"
-        style={{
-          bottom: "calc(6% + 20px)",
-          width: "44vw",
-          maxWidth: "260px",
-          height: "8px",
-          transform: "translateX(-50%)",
-          background: "#3a2830",
-          boxShadow: "inset 0 2px 0 #4a3640",
-        }}
-      />
-      {/* Charging cable trailing off the bottom of the phone */}
-      <div
-        className="absolute left-1/2 pointer-events-none"
-        style={{
-          bottom: "2%",
-          width: "4px",
-          height: "8%",
+          left: "calc(50% - 16vw)",
+          top: "calc(63% + 4px)",          // emerges where the phone bottom meets desk surface
+          width: "30vw",
+          maxWidth: "180px",
+          height: "3px",
           background: "#f4f4f4",
-          transform: "translateX(-50%) translateX(20vw) rotate(8deg)",
-          boxShadow: "1px 0 0 #b0b0b0",
+          transform: "rotate(6deg)",
+          transformOrigin: "left center",
+          boxShadow: "0 2px 0 rgba(0,0,0,0.4)",
         }}
       />
 
-      {/* ── Phone (pixelated chunky frame, leaning slightly) ── */}
-      <div className="absolute inset-0 flex items-end justify-center px-4 pb-[10%] pointer-events-none">
+      {/* ── Phone — leaning against the monitor base on the desk ── */}
+      <div
+        className="absolute inset-0 flex justify-center pointer-events-none"
+      >
         <div
           className="relative pointer-events-auto"
           style={{
-            height: "min(76vh, 700px)",
+            // Position so phone bottom sits on desk surface and top reaches up
+            // to roughly the lower half of the monitor screen.
+            position: "absolute",
+            top: "8vh",
+            bottom: "calc(100vh - 63vh - 4vh)",  // bottom at 63% (desk top) - small overlap
             aspectRatio: "9 / 19",
-            maxWidth: "82vw",
+            maxWidth: "70vw",
             background: bezel,
             padding: "6px",
-            // Pixel-art aesthetic: hard right angles, hard outer ring, slight tilt
             border: "2px solid #000",
             boxShadow:
-              "0 0 0 2px #1a1a1c, 4px 4px 0 #000, 8px 18px 0 rgba(0,0,0,0.35)",
-            transform: "rotate(-1.6deg)",
+              "0 0 0 2px #1a1a1c, 4px 4px 0 #000, 8px 14px 0 rgba(0,0,0,0.5)",
+            // Slight backward lean — looks like it rests against the monitor.
+            transform: "rotate(-3deg) translateY(-1vh)",
             transformOrigin: "bottom center",
             imageRendering: "pixelated" as React.CSSProperties["imageRendering"],
           }}
