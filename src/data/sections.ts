@@ -230,7 +230,7 @@ Iowa State University                     Spring 25
   📚  TA for CS 1270 — Python problem solving
   Python
 
-Iowa Legislature                          Summer 24
+Senate Campaign                           Summer 24
   Data Science Intern
   📊  Built historic voter data automation software
   JavaScript · Excel
