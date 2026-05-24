@@ -113,6 +113,16 @@ export default function PixelDesk() {
     ctx.imageSmoothingEnabled = false;
 
     drawWall(ctx, theme); // dark: Bay Bridge dusk; light: Golden Gate sunset
+    // On compact (phone) viewports we render just the wall and skip the desk
+    // and its items — the foreground is taken over by the PhoneScreen overlay.
+    if (isCompact) {
+      // Fill below the wall with a soft surface so the phone has a backdrop
+      // that isn't a hard cut to black.
+      const surfaceCol = theme === "light" ? "#0f0a14" : "#070713";
+      ctx.fillStyle = surfaceCol;
+      ctx.fillRect(0, DESK_TOP_Y, CW, CH - DESK_TOP_Y);
+      return;
+    }
     drawFloor(ctx);
     drawDesk(ctx);
 
@@ -181,7 +191,7 @@ export default function PixelDesk() {
     // wallImageReady is intentionally a dep so the canvas redraws when the
     // SF skyline image finishes loading.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hover, screenRect, theme, wallImageReady, monitorSize]);
+  }, [hover, screenRect, theme, wallImageReady, monitorSize, isCompact]);
 
   // Repaint when hover changes OR sprites finish loading.
   useEffect(() => { repaint(); }, [repaint, spritesReady]);
@@ -339,7 +349,8 @@ export default function PixelDesk() {
         />
         <CarsOverlay theme={theme} />
         {raining && <RainOverlay enableThunder={theme === "dark"} />}
-        {screenRect && (
+        {isCompact && <PhoneScreen theme={theme} onOpen={id => setActive(id)} />}
+        {screenRect && !isCompact && (
           <TerminalOverlay rect={screenRect} state={terminal} theme={theme} />
         )}
       {/* Hover label — readable HTML overlay positioned above the hovered zone */}
@@ -383,6 +394,113 @@ export default function PixelDesk() {
 // portion of the viewport (the "outside the window" area, above the desk).
 // Each drop is a thin slanted line with random column, delay, and speed.
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// PhoneScreen — mobile-only view. A big iPhone-style mockup leaning
+// against the window. The Bay Bridge view still renders behind/above
+// the phone (the canvas wall is drawn full-width even on compact).
+// 3×3 grid of app icons, one per section. Tap → opens the section modal.
+// ─────────────────────────────────────────────────────────────
+const APPS: { id: SectionId; label: string; emoji: string; bg: string }[] = [
+  { id: "skills",     label: "Skills",   emoji: "⚡", bg: "linear-gradient(135deg,#6aa6ff 0%,#3a78d4 100%)" },
+  { id: "projects",   label: "Projects", emoji: "💻", bg: "linear-gradient(135deg,#2a2a2c 0%,#101012 100%)" },
+  { id: "education",  label: "Books",    emoji: "📚", bg: "linear-gradient(135deg,#e0b46a 0%,#a8782a 100%)" },
+  { id: "experience", label: "Work",     emoji: "💼", bg: "linear-gradient(135deg,#f1efe8 0%,#b8b3a8 100%)" },
+  { id: "music",      label: "Music",    emoji: "🎸", bg: "linear-gradient(135deg,#e84a44 0%,#982020 100%)" },
+  { id: "contact",    label: "Contact",  emoji: "📞", bg: "linear-gradient(135deg,#5ad078 0%,#1f9040 100%)" },
+  { id: "journal",    label: "Journal",  emoji: "📓", bg: "linear-gradient(135deg,#d4a060 0%,#7a4d28 100%)" },
+  { id: "interests",  label: "Hobbies",  emoji: "🏃", bg: "linear-gradient(135deg,#7adc92 0%,#2a8a50 100%)" },
+  { id: "nowplaying", label: "Spotify",  emoji: "🎵", bg: "linear-gradient(135deg,#1ed760 0%,#0d8f3f 100%)" },
+];
+
+function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) => void }) {
+  const phoneBezel = theme === "light" ? "#1a1a1c" : "#0a0a0c";
+  const screenBg = theme === "light"
+    ? "linear-gradient(180deg,#f0e8e2 0%,#d0bcb0 35%,#9088a8 70%,#3a4860 100%)"
+    : "linear-gradient(180deg,#1a2240 0%,#2a3050 30%,#4a3050 60%,#1a1830 100%)";
+
+  return (
+    <div className="absolute inset-0 flex items-end justify-center pointer-events-none z-10 px-4 pb-2">
+      <div
+        className="relative pointer-events-auto"
+        style={{
+          // Phone occupies most of phone-viewport height, leaving the bridge above visible.
+          height: "min(82vh, 720px)",
+          aspectRatio: "9 / 19",
+          maxWidth: "92vw",
+          background: phoneBezel,
+          borderRadius: "min(8vw, 44px)",
+          boxShadow: "0 30px 60px rgba(0,0,0,0.6), 0 0 0 2px rgba(255,255,255,0.05) inset",
+          padding: "8px",
+        }}
+      >
+        {/* Phone screen */}
+        <div
+          className="relative w-full h-full overflow-hidden flex flex-col"
+          style={{ borderRadius: "min(7vw, 38px)", background: screenBg }}
+        >
+          {/* Dynamic island */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 bg-black z-10"
+            style={{
+              top: "10px",
+              width: "min(30%, 110px)",
+              height: "22px",
+              borderRadius: "999px",
+            }}
+          />
+          {/* Status bar */}
+          <div className="flex items-center justify-between px-6 pt-2.5 text-white text-[11px] font-semibold tracking-wide">
+            <span>9:41</span>
+            <span className="opacity-90">·  ·  100%</span>
+          </div>
+          {/* Greeting */}
+          <div className="text-center pt-12 pb-3 select-none">
+            <div className="text-white text-2xl font-semibold tracking-tight drop-shadow-md">
+              rohan.sah
+            </div>
+            <div className="text-white/80 text-[11px] tracking-[0.2em] uppercase mt-1">
+              tap an app
+            </div>
+          </div>
+          {/* App grid */}
+          <div className="flex-1 flex items-center px-5">
+            <div className="grid grid-cols-3 gap-y-5 gap-x-3 w-full">
+              {APPS.map(app => (
+                <button
+                  key={app.id}
+                  onClick={() => onOpen(app.id)}
+                  className="flex flex-col items-center gap-1.5 group"
+                >
+                  <div
+                    className="flex items-center justify-center text-2xl shadow-lg group-active:scale-90 transition-transform"
+                    style={{
+                      width: "min(18vw, 64px)",
+                      height: "min(18vw, 64px)",
+                      borderRadius: "22%",
+                      background: app.bg,
+                      boxShadow:
+                        "0 4px 10px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.18)",
+                    }}
+                  >
+                    {app.emoji}
+                  </div>
+                  <span className="text-white text-[10px] font-medium drop-shadow">
+                    {app.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Home indicator */}
+          <div className="flex justify-center pb-2">
+            <div className="bg-white/80 rounded-full" style={{ width: "34%", height: "4px" }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // CarsOverlay — tiny cars driving across the Bay Bridge deck.
 // Two lanes (left→right and right→left) with multiple cars, randomized
