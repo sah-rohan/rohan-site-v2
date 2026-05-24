@@ -24,20 +24,24 @@ export const SECTIONS: Record<SectionId, Section> = {
   title: "SKILLS",
   cmd: "cat ~/Rohan.json",
   accent: "#7aa8d8",
-  body: `a software engineer
+  body: `software engineering
 ────────────────────────────
 languages
-  · TypeScript   · Python
-  · Java         · C / C++
-  · Rust         · Go
+  · TypeScript   · JavaScript
+  · Python       · Java
+  · Swift        · Go
+  · Rust         · C / C++
+  · SQL / NoSQL
 
-libraries & frameworks
-  · React        · Node.js
-  · Spring Boot
+frameworks & libraries
+  · React        · Next.js
+  · Node.js      · Express.js
+  · Spring Boot  · PyTorch
 
 cloud & devops
   · AWS          · Azure
-  · IaC          · Jenkins
+  · Terraform    · GitHub Actions
+  · Jenkins
 
 currently obsessed with
   · distributed systems
@@ -78,6 +82,11 @@ who i grew up on
     accent: "#d8d2c4",
     body: `selected work
 ────────────────────────────
+something's brewing
+  the most excited I've been about anything I've built.
+  agentic AI · hardware · software
+
+
 Federated Learning Platform
   Privacy-preserving federated ML across edge devices.
   Rust · C++ · Python · PyTorch · Prometheus · Distributed Systems
@@ -131,8 +140,8 @@ B.S. Computer Science
 Minor in Applied Mathematics
 
 Coursework
-  Math 2650   Multivariable Calculus
-  Math 2670   Differential Equations
+  Math 2650  Multivariable Calculus
+  Math 2670  Differential Equations
   COMS 2270  Object-Oriented Programming
   COMS 2280  Data Structures
   COMS 2300  Discrete Math for Computing
@@ -242,32 +251,31 @@ that don't have to ship.`,
     cmd: "cat ~/journal.md",
     accent: "#d4a060",
     body: `quiet bets on the future
-────────────────────────────
-software / craft
-  · ship one piece of infra real engineers
-    rely on without knowing my name
-  · contribute to 6 open-source project
-    used by thousands by the end of 
-    the summer
-  · grow into a staff-level engineer building
-    quality tools fors millions
-  · start a unicorn company
+  ────────────────────────────
+  software
+    · ship infrastructure real engineers
+      rely on without knowing my name
+    · contribute to 6 open-source projects
+      used by thousands this summer
+    · grow into a staff-level engineer
+      building tools that matter at scale
+    · start a unicorn
 
-music / craft
-  · finish recording a small EP 
-  · write one song that helps someone
-    through a hard night
-  · play a small live set somewhere
-    that actually matters to me
-  · keep learning piano voicings,
-    quietly, every week
+  music
+    · finish recording a small EP
+    · write one song that gets someone
+      through a hard night
+    · play a live set somewhere that
+      actually means something to me
+    · keep learning piano voicings —
+      quietly, every week
 
-life / craft
-  · run a sub-3 marathon
-  · sub-20s rubik's cube
-  · read more than I scroll
-  · be the kind of person my
-    younger self would have wanted to meet`,
+  life
+    · run a sub-3 marathon
+    · crack sub-20s on the cube
+    · read more than I scroll
+    · be the kind of person my
+      younger self would have looked up to`,
   },
 
   // ─── NOW PLAYING (headphones) — live Spotify integration ───
