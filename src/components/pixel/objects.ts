@@ -75,7 +75,18 @@ export function drawAppleLogo(c: Ctx, x: number, y: number, col: string, bg?: st
 export function drawMonitor(
   c: Ctx, cx: number, deskTopY: number,
   size: { screenW: number; screenH: number } = { screenW: 280, screenH: 170 },
+  theme: "dark" | "light" = "dark",
 ): ScreenRect {
+  // Theme-aware bezel: dark = matte black, light = soft brushed silver.
+  const bezelBody = theme === "light" ? G.g85 : G.g10;
+  const bezelHl   = theme === "light" ? G.white : G.g30;
+  const bezelSh   = theme === "light" ? G.g55 : G.ink;
+  const bezelInk  = theme === "light" ? G.g65 : G.g05;
+  const chinSh    = theme === "light" ? G.g70 : G.g20;
+  const chinDot   = theme === "light" ? G.g60 : G.g05;
+  const standBody = theme === "light" ? G.g75 : G.g15;
+  const standDk   = theme === "light" ? G.g45 : G.g05;
+  const standHl   = theme === "light" ? G.g90 : G.g30;
   // Monitor proportions — configurable size for responsive layout.
   const screenW = size.screenW;
   const screenH = size.screenH;
@@ -87,32 +98,29 @@ export function drawMonitor(
   // Stand neck = 8px, V-foot = 6px tall. Foot bottom should land at deskTopY.
   const oy = deskTopY - outerH - 13;
 
-  // ── Outer chassis (matte black, beveled) ──
-  rect(c, ox, oy, outerW, outerH, G.g10);
-  // top + left highlight
-  hline(c, ox, oy, outerW, G.g30);
-  vline(c, ox, oy, outerH, G.g25);
-  // bottom + right shadow
-  hline(c, ox, oy + outerH - 1, outerW, G.ink);
-  vline(c, ox + outerW - 1, oy, outerH, G.g05);
-  // soft inner bezel line
-  rect(c, ox + 1, oy + 1, outerW - 2, 1, G.g15);
-  vline(c, ox + 1, oy + 1, outerH - 2, G.g15);
+  // ── Outer chassis (theme-aware) ──
+  rect(c, ox, oy, outerW, outerH, bezelBody);
+  hline(c, ox, oy, outerW, bezelHl);
+  vline(c, ox, oy, outerH, bezelHl);
+  hline(c, ox, oy + outerH - 1, outerW, bezelSh);
+  vline(c, ox + outerW - 1, oy, outerH, bezelInk);
+  rect(c, ox + 1, oy + 1, outerW - 2, 1, theme === "light" ? G.g80 : G.g15);
+  vline(c, ox + 1, oy + 1, outerH - 2, theme === "light" ? G.g80 : G.g15);
 
   // ── Screen recess ──
   const sx = ox + bezel;
   const sy = oy + bezel;
-  rect(c, sx, sy, screenW, screenH, G.ink);
+  rect(c, sx, sy, screenW, screenH, theme === "light" ? G.g65 : G.ink);
   // inset shadow
-  hline(c, sx, sy, screenW, G.g05);
-  vline(c, sx, sy, screenH, G.g05);
-  hline(c, sx, sy + screenH - 1, screenW, G.g15);
-  vline(c, sx + screenW - 1, sy, screenH, G.g15);
+  hline(c, sx, sy, screenW, bezelInk);
+  vline(c, sx, sy, screenH, bezelInk);
+  hline(c, sx, sy + screenH - 1, screenW, theme === "light" ? G.g90 : G.g15);
+  vline(c, sx + screenW - 1, sy, screenH, theme === "light" ? G.g90 : G.g15);
 
   // ── Chin under screen ──
   const chinY = sy + screenH + 2;
-  rect(c, ox + 2, chinY, outerW - 4, 6, G.g10);
-  hline(c, ox + 2, chinY, outerW - 4, G.g20);
+  rect(c, ox + 2, chinY, outerW - 4, 6, bezelBody);
+  hline(c, ox + 2, chinY, outerW - 4, chinSh);
   // Samsung-ish wordmark dot
   rect(c, cx - 12, chinY + 2, 24, 2, G.g05);
   hline(c, cx - 12, chinY + 2, 24, G.g25);
@@ -121,17 +129,17 @@ export function drawMonitor(
 
   // ── Stand neck ──
   const stY = oy + outerH;
-  rect(c, cx - 8, stY, 16, 8, G.g15);
-  hline(c, cx - 8, stY, 16, G.g30);
-  vline(c, cx - 8, stY, 8, G.g25);
-  vline(c, cx + 7, stY, 8, G.g05);
+  rect(c, cx - 8, stY, 16, 8, standBody);
+  hline(c, cx - 8, stY, 16, standHl);
+  vline(c, cx - 8, stY, 8, standHl);
+  vline(c, cx + 7, stY, 8, standDk);
   // ── Stand base (V-foot) ──
   const bfY = stY + 8;
   for (let i = 0; i < 6; i++) {
-    rect(c, cx - 32 - i, bfY + i, 64 + i * 2, 1, i < 2 ? G.g25 : G.g15);
+    rect(c, cx - 32 - i, bfY + i, 64 + i * 2, 1, i < 2 ? standHl : standBody);
   }
-  hline(c, cx - 32, bfY, 64, G.g35);
-  hline(c, cx - 38, bfY + 5, 76, G.ink);
+  hline(c, cx - 32, bfY, 64, theme === "light" ? G.white : G.g35);
+  hline(c, cx - 38, bfY + 5, 76, standDk);
   // foot shadow on desk
   for (let i = 0; i < 4; i++) {
     rect(c, cx - 40 - i * 2, deskTopY + 3 + i, 80 + i * 4, 1, i < 2 ? W.d2 : W.d3);
@@ -152,10 +160,17 @@ export interface TerminalState {
 
 // Paint only the screen background + scanlines. Text is rendered by an
 // HTML overlay in React (TerminalOverlay) so the type stays sharp.
-export function drawTerminalBackground(c: Ctx, s: ScreenRect) {
-  rect(c, s.x, s.y, s.w, s.h, "#04080a");
-  for (let y = 0; y < s.h; y += 2) hline(c, s.x, s.y + y, s.w, "#02050a");
-  stipple(c, s.x, s.y, s.w, s.h, A.greenDk, 0.015, 5);
+// Theme-aware: dark = phosphor green/black, light = soft paper white.
+export function drawTerminalBackground(c: Ctx, s: ScreenRect, theme: "dark" | "light" = "dark") {
+  if (theme === "light") {
+    rect(c, s.x, s.y, s.w, s.h, "#f4f1ea");        // off-white "paper" screen
+    for (let y = 0; y < s.h; y += 2) hline(c, s.x, s.y + y, s.w, "#ece8df");
+    stipple(c, s.x, s.y, s.w, s.h, "#d8d2c0", 0.02, 5);
+  } else {
+    rect(c, s.x, s.y, s.w, s.h, "#04080a");
+    for (let y = 0; y < s.h; y += 2) hline(c, s.x, s.y + y, s.w, "#02050a");
+    stipple(c, s.x, s.y, s.w, s.h, A.greenDk, 0.015, 5);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

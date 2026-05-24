@@ -140,13 +140,13 @@ export default function PixelDesk() {
         h: def.h - 60,
       };
     } else {
-      sr = drawMonitor(ctx, MONITOR_CX, DESK_TOP_Y, monitorSize);
+      sr = drawMonitor(ctx, MONITOR_CX, DESK_TOP_Y, monitorSize, theme);
     }
     screenRectRef.current = sr;
     if (!screenRect || sr.x !== screenRect.x || sr.y !== screenRect.y) {
       setScreenRect(sr);
     }
-    drawTerminalBackground(ctx, sr);
+    drawTerminalBackground(ctx, sr, theme);
 
     // Layout on desk surface (x band 60-590), L→R:
     orProc("keyboard", 240, DESK_TOP_Y, () => drawKeyboard(ctx, 240, DESK_TOP_Y));
@@ -336,7 +336,7 @@ export default function PixelDesk() {
         <CarsOverlay theme={theme} />
         {raining && <RainOverlay enableThunder={theme === "dark"} />}
         {screenRect && (
-          <TerminalOverlay rect={screenRect} state={terminal} />
+          <TerminalOverlay rect={screenRect} state={terminal} theme={theme} />
         )}
       {/* Hover label — readable HTML overlay positioned above the hovered zone */}
       {hover && (() => {
@@ -661,52 +661,80 @@ function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }
 // real anti-aliased font for readability.
 // ─────────────────────────────────────────────────────────────
 function TerminalOverlay({
-  rect, state,
+  rect, state, theme,
 }: {
   rect: ScreenRect;
   state: { history: string[]; currentCmd: string; cursorOn: boolean };
+  theme: Theme;
 }) {
   const left   = (rect.x / CW) * 100;
   const top    = (rect.y / CH) * 100;
   const width  = (rect.w / CW) * 100;
   const height = (rect.h / CH) * 100;
 
+  // Theme-aware color tokens for the readable HTML terminal.
+  const t = theme === "light"
+    ? {
+        text: "#1a1a1a",
+        muted: "#5a5a5a",
+        dim: "#8a8a8a",
+        prompt: "#7a4030",
+        accent: "#1a1a1a",
+        border: "#d0c8b8",
+        cursor: "#1a1a1a",
+        shadow: "0 0 0 transparent",
+      }
+    : {
+        text: "#ffffff",
+        muted: "#a3a3a3",
+        dim: "#5a5a5a",
+        prompt: "#a3a3a3",
+        accent: "#ffffff",
+        border: "#262626",
+        cursor: "#ffffff",
+        shadow: "0 0 4px rgba(255,255,255,0.18)",
+      };
+
   return (
     <div
-      className="absolute pointer-events-none font-mono text-white overflow-hidden"
+      className="absolute pointer-events-none font-mono overflow-hidden"
       style={{
         left: `${left}%`,
         top: `${top}%`,
         width: `${width}%`,
         height: `${height}%`,
+        color: t.text,
         fontFamily: "var(--font-geist-mono), ui-monospace, Menlo, monospace",
-        textShadow: "0 0 4px rgba(255,255,255,0.18)",
+        textShadow: t.shadow,
         padding: "1.4% 1.6%",
         lineHeight: 1.35,
         fontSize: "clamp(10px, 1.25vw, 18px)",
       }}
     >
-      <div className="text-[0.78em] uppercase tracking-[0.2em] text-neutral-500 mb-[0.6em] border-b border-neutral-800 pb-[0.3em]">
+      <div
+        className="text-[0.78em] uppercase tracking-[0.2em] mb-[0.6em] pb-[0.3em]"
+        style={{ color: t.muted, borderBottom: `1px solid ${t.border}` }}
+      >
         rohan@portfolio &nbsp; ~ &nbsp; zsh
       </div>
       {state.history.map((line, i) => (
         <div
           key={i}
-          className={i === state.history.length - 1 ? "text-white" : "text-neutral-500"}
+          style={{ color: i === state.history.length - 1 ? t.accent : t.dim }}
         >
           {line}
         </div>
       ))}
       <div>
-        <span className="text-neutral-400">rohan@portfolio:~$</span>{" "}
-        <span className="text-white">{state.currentCmd}</span>
+        <span style={{ color: t.prompt }}>rohan@portfolio:~$</span>{" "}
+        <span style={{ color: t.accent }}>{state.currentCmd}</span>
         <span
           className="inline-block align-middle"
           style={{
             width: "0.55em",
             height: "1em",
             marginLeft: "0.1em",
-            background: state.cursorOn ? "#ffffff" : "transparent",
+            background: state.cursorOn ? t.cursor : "transparent",
             transform: "translateY(0.05em)",
           }}
         />
