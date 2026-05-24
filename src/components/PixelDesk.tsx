@@ -427,18 +427,18 @@ function CarsOverlay({ theme }: { theme: Theme }) {
         return (
           <div
             key={i}
-            className="absolute"
+            className={`absolute animate-car-${c.dir}`}
             style={{
               top: `${30 + c.offsetY * 8}%`,
               left: 0,
-              // Bigger + viewport-relative so cars are visible on any screen.
               width: "2.5vw",
               minWidth: "30px",
               height: "1vw",
               minHeight: "12px",
-              animation: `car-${c.dir} ${c.duration}s linear ${c.delay}s infinite`,
+              ["--car-dur" as string]: `${c.duration}s`,
+              ["--car-delay" as string]: `${c.delay}s`,
               willChange: "transform",
-            }}
+            } as React.CSSProperties}
           >
             {/* car body */}
             <div
