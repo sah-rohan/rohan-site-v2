@@ -160,51 +160,50 @@ Coursework
   COMS 4540  Distributed Systems`
   ,
   },
-
-  // ─── EXPERIENCE (keyboard) ─── work history ───
-  experience: {
-    id: "experience",
-    title: "EXPERIENCE",
-    cmd: "cat ~/work.log",
-    accent: "#e0e0e0",
-    body: `work history
+experience: {
+  id: "experience",
+  title: "EXPERIENCE",
+  cmd: "cat ~/work.log",
+  accent: "#e0e0e0",
+  body: `work history
 ────────────────────────────
 John Deere                                Present
   Student Software Engineer
-  🚜  Full-stack SWE @ John Deere Financial
+  🚜  Full-stack SWE at John Deere Financial
 
 UCSF                                      Present
   Undergraduate Research Assistant
-  🩺  Digital twins for healthcare & semi automated meta analysis
-
-Ivy College of Business                   Present
-  Software Engineering Research Assistant
-  🧳  Business research + full-stack SWE for the public good
+  🩺  Digital twins for healthcare + semi-automated meta-analysis
 
 Indu Sah Foundation                       Present
-  Founding Software Engineer
-  🌏  Building the site for a Nepalese-American humanitarian non-profit
+  Founding Software Engineer (Solo)
+  🌏  Building software for a Nepalese-American humanitarian non-profit
+  → indusahfoundation.org
 
-Iowa State University                     Spring 2025
+Ivy College of Business                   Fall 24 / Spring 25
+  Software Engineering Research Assistant
+  🧳  Full-stack SWE + research for public-good business initiatives
+
+Iowa State University                     Spring 25
   Undergraduate Teaching Assistant
-  📚  TA for CS 1270 (Python problem solving)
+  📚  TA for CS 1270 — Python problem solving
 
-Iowa Legislature                          Summer 2024
-  Data Science Intern for an Iowa Senator
-  📊  Historic voter data automation
+Iowa Legislature                          Summer 24
+  Data Science Intern
+  📊  Built historic voter data automation software
 
-Gladiators NYC                            Summer 2024
+Gladiators NYC                            Summer 24
   Software Engineering Intern
-  📈  Automated product price + availability updates
+  📈  Automated product pricing + availability tracking
 
 Iowa State University                     Fall 23 / Spring 24
   Undergraduate Research Assistant
-  🛰️  Defense of LiDAR sensors via deep learning
+  🛰️  LiDAR sensor defense via deep learning
 
 MindZone Learning                         Summer 22 / Summer 23
   Academic Tutor
   📝  Math · reading · science`,
-  },
+},
 
   // ─── CONTACT (phone) ───
   contact: {
