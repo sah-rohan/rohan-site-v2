@@ -18,24 +18,11 @@ export function drawWall(c: Ctx, theme: Theme = "dark") {
   // Same Bay Bridge composition for both themes — just recolored.
   drawBayView(c, 0, 0, CW, DESK_TOP_Y, theme);
 
-  // Window frame — thin dark steel mullions framing the room edges.
-  // Top header
-  rect(c, 0, 0, CW, 4, G.ink);
-  hline(c, 0, 4, CW, G.g15);
-  // Bottom sill at desk-top level
-  hline(c, 0, DESK_TOP_Y - 4, CW, G.g15);
-  rect(c, 0, DESK_TOP_Y - 3, CW, 3, G.ink);
-  // Vertical mullions dividing into three panels
-  drawMullion(c, Math.floor(CW * 0.33));
-  drawMullion(c, Math.floor(CW * 0.66));
-  // Left and right vertical edges
-  drawMullion(c, 0);
-  drawMullion(c, CW - 2);
-}
-
-function drawMullion(c: Ctx, x: number) {
-  rect(c, x, 0, 2, DESK_TOP_Y, G.ink);
-  vline(c, x, 0, DESK_TOP_Y, G.g15);
+  // Single uninterrupted window pane — just a slim frame at top + bottom.
+  rect(c, 0, 0, CW, 3, G.ink);
+  hline(c, 0, 3, CW, G.g15);
+  hline(c, 0, DESK_TOP_Y - 3, CW, G.g15);
+  rect(c, 0, DESK_TOP_Y - 2, CW, 2, G.ink);
 }
 
 // No-op kept for API compat — the bay view is now baked into drawWall.
