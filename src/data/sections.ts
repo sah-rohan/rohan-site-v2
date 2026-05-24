@@ -86,7 +86,6 @@ something's brewing
   the most excited I've been about anything I've built.
   agentic AI · hardware · software
 
-
 Federated Learning Platform
   Privacy-preserving federated ML across edge devices.
   Rust · C++ · Python · PyTorch · Prometheus · Distributed Systems
