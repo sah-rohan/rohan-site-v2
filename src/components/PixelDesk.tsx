@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk } from "./pixel/scene";
+import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk, drawPhoneDesk, drawPhoneStand } from "./pixel/scene";
 import {
   drawMonitor, drawTerminalBackground, drawMacBook, drawKeyboard, drawMouse,
   drawBookshelf, drawPhone, drawNotebook,
@@ -9,10 +9,13 @@ import {
   drawChargerBrick, drawChargerCable,
   ScreenRect,
 } from "./pixel/objects";
-import { preloadSprites, drawSprite, SPRITE_DEFS } from "./pixel/sprites";
+import { drawSprite, SPRITE_DEFS } from "./pixel/sprites";
 import { SECTIONS, SectionId } from "@/data/sections";
 
-const SPRITE_IDS = Object.keys(SPRITE_DEFS) as (keyof typeof SPRITE_DEFS)[];
+// Reserved for future PNG sprites; currently empty so no 404 requests fire.
+// If you ever drop PNGs into /public/sprites/, list their IDs here and the
+// preload effect below will load them.
+const SPRITE_IDS: (keyof typeof SPRITE_DEFS)[] = [];
 
 interface Zone {
   id: SectionId;
@@ -48,17 +51,28 @@ const MONITOR_CX = 320;
 type Theme = "dark" | "light";
 
 export default function PixelDesk() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "dark";
+  // SSR-safe: server + first client paint both use "dark". Post-mount we
+  // check the URL param so ?theme=light still works for shareable links.
+  const [theme, setTheme] = useState<Theme>("light");
+  useEffect(() => {
     const param = new URLSearchParams(window.location.search).get("theme");
-    return param === "light" ? "light" : "dark";
-  });
+    if (param === "light") {
+      // Defer to a microtask so React doesn't flag a cascading render inside
+      // the effect body itself.
+      queueMicrotask(() => setTheme("light"));
+    }
+  }, []);
 
   // Two breakpoints: isPhone triggers the dedicated phone-with-apps layout,
   // isTabletDown just resizes the monitor (so iPads still see the desk scene
   // but with a bigger monitor so the terminal stays readable).
-  const [isCompact, setIsCompact] = useState(false);  // monitor sizing only
-  const [isPhone,   setIsPhone]   = useState(false);  // dedicated phone scene
+  // Start both flags at `false` (SSR-safe) so the server-rendered HTML matches
+  // the client's first paint — no hydration mismatch. The post-mount effect
+  // measures the viewport and flips them. `mounted` gates the canvas so the
+  // desktop scene doesn't briefly flash on phone-sized viewports.
+  const [isCompact, setIsCompact] = useState(false);
+  const [isPhone, setIsPhone]     = useState(false);
+  const [mounted, setMounted]     = useState(false);
   useEffect(() => {
     const update = () => {
       const w = window.innerWidth;
@@ -66,13 +80,16 @@ export default function PixelDesk() {
       setIsPhone(w < 600);
     };
     update();
+    // Defer the mounted flip to a microtask so React doesn't flag cascading
+    // renders inside the effect body itself (lint rule).
+    queueMicrotask(() => setMounted(true));
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
   const monitorSize = useMemo(() => (
     isCompact
-      ? { screenW: 340, screenH: 210 }
-      : { screenW: 220, screenH: 140 }
+      ? { screenW: 340, screenH: 210 }   // tablet
+      : { screenW: 220, screenH: 140 }   // full desktop — kept small on purpose
   ), [isCompact]);
 
   // Weather — toggleable live rain in the window background.
@@ -92,11 +109,16 @@ export default function PixelDesk() {
     currentCmd: "",
     cursorOn: true,
   });
-  const [spritesReady, setSpritesReady] = useState(false);
+  const [spritesReady, setSpritesReady] = useState(true);
 
-  // Preload PNG sprites once. Missing files silently fall back to procedural.
+  // Preload PNG sprites if any are listed. With SPRITE_IDS empty (default)
+  // this effect is a no-op and no /sprites/*.png requests are made.
   useEffect(() => {
-    preloadSprites(SPRITE_IDS).then(() => setSpritesReady(true));
+    if (SPRITE_IDS.length === 0) return;
+    // Dynamic import so the bundler still tree-shakes when unused.
+    import("./pixel/sprites").then(({ preloadSprites }) => {
+      preloadSprites(SPRITE_IDS).then(() => setSpritesReady(true));
+    });
   }, []);
 
   // Preload the SF skyline image used as the light-mode wall background.
@@ -114,11 +136,24 @@ export default function PixelDesk() {
   const repaint = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Skip painting until we've measured the viewport, so we don't flash
+    // the desktop scene on phone-sized devices before the responsive flags
+    // are correctly set.
+    if (!mounted) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.imageSmoothingEnabled = false;
 
     drawWall(ctx, theme); // dark: Bay Bridge dusk; light: Golden Gate sunset
+
+    // Phone viewport = close-up: bay bridge above + ONE continuous pixel-art
+    // wood slab below, plus a pixel-art stand the phone rests on.
+    if (isPhone) {
+      drawPhoneDesk(ctx);
+      drawPhoneStand(ctx, theme);
+      return;
+    }
+
     drawFloor(ctx);
     drawDesk(ctx);
 
@@ -187,7 +222,7 @@ export default function PixelDesk() {
     // wallImageReady is intentionally a dep so the canvas redraws when the
     // SF skyline image finishes loading.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hover, screenRect, theme, wallImageReady, monitorSize, isCompact]);
+  }, [hover, screenRect, theme, wallImageReady, monitorSize, isCompact, isPhone, mounted]);
 
   // Repaint when hover changes OR sprites finish loading.
   useEffect(() => { repaint(); }, [repaint, spritesReady]);
@@ -219,7 +254,7 @@ export default function PixelDesk() {
     if (ALIASES[cmd]) {
       const id = ALIASES[cmd];
       setTerminal(t => ({
-        history: [...t.history, `$ ${rawCmd}`, `> opening ${id}…`].slice(-6),
+        history: [...t.history, `$ ${rawCmd}`, `> opening ${id}…`].slice(-4),
         currentCmd: "",
         cursorOn: t.cursorOn,
       }));
@@ -227,12 +262,14 @@ export default function PixelDesk() {
       return;
     }
     if (cmd === "help" || cmd === "?" ) {
+      // Reset history to just the help output so it always fits the screen.
       setTerminal(t => ({
-        history: [...t.history, `$ ${rawCmd}`,
-          "commands: projects, education, music, contact, experience, interests",
-          "aliases: ls, work, resume, school, hobbies, running, guitar",
-          "clear — wipe screen",
-        ].slice(-6),
+        history: [
+          `$ ${rawCmd}`,
+          "skills · projects · education · experience",
+          "music · contact · journal · interests · nowplaying",
+          "(or click anything in the room)",
+        ],
         currentCmd: "",
         cursorOn: t.cursorOn,
       }));
@@ -244,7 +281,7 @@ export default function PixelDesk() {
     }
     if (cmd === "whoami") {
       setTerminal(t => ({
-        history: [...t.history, `$ ${rawCmd}`, "rohan sah — student, builder, runner."].slice(-6),
+        history: [...t.history, `$ ${rawCmd}`, "rohan sah — student, builder, runner."].slice(-4),
         currentCmd: "",
         cursorOn: t.cursorOn,
       }));
@@ -252,7 +289,7 @@ export default function PixelDesk() {
     }
     // Unknown
     setTerminal(t => ({
-      history: [...t.history, `$ ${rawCmd}`, `zsh: command not found: ${cmd} — try 'help'`].slice(-6),
+      history: [...t.history, `$ ${rawCmd}`, `zsh: command not found: ${cmd} — try 'help'`].slice(-4),
       currentCmd: "",
       cursorOn: t.cursorOn,
     }));
@@ -302,7 +339,7 @@ export default function PixelDesk() {
     }
     await new Promise(r => setTimeout(r, 300));
     setTerminal(t => ({
-      history: [...t.history, `$ ${s.cmd}`].slice(-5),
+      history: [...t.history, `$ ${s.cmd}`].slice(-4),
       currentCmd: "",
       cursorOn: t.cursorOn,
     }));
@@ -330,7 +367,12 @@ export default function PixelDesk() {
           width={CW}
           height={CH}
           className="block w-full h-full"
-          style={{ imageRendering: "pixelated", cursor: hover ? "pointer" : "crosshair" }}
+          style={{
+            imageRendering: "pixelated",
+            cursor: hover ? "pointer" : "crosshair",
+            opacity: mounted ? 1 : 0,
+            transition: "opacity 0.12s ease-out",
+          }}
           onMouseMove={e => {
             if (typing) return;
             const z = eventToZone(e.clientX, e.clientY);
@@ -344,8 +386,8 @@ export default function PixelDesk() {
           }}
         />
         {raining && <RainOverlay enableThunder={theme === "dark"} />}
-        {isCompact && <PhoneScreen theme={theme} onOpen={id => setActive(id)} />}
-        {screenRect && !isCompact && (
+        {isPhone && <PhoneScreen theme={theme} onOpen={id => setActive(id)} />}
+        {screenRect && !isPhone && (
           <TerminalOverlay rect={screenRect} state={terminal} theme={theme} />
         )}
       {/* Hover label — readable HTML overlay positioned above the hovered zone */}
@@ -400,42 +442,52 @@ const ICON_BOX: React.CSSProperties = {
   imageRendering: "pixelated" as React.CSSProperties["imageRendering"],
 };
 
-// Spotify — green circle + three white arc bands.
-function SpotifyIcon() {
+// GarageBand — white tile with a small electric-guitar silhouette.
+function GarageBandIcon() {
   return (
     <svg viewBox="0 0 16 16" style={ICON_BOX}>
-      {/* Green disc body (octagon-ish for pixel feel) */}
-      <rect x="3" y="1"  width="10" height="14" fill="#1ed760" />
-      <rect x="1" y="3"  width="14" height="10" fill="#1ed760" />
-      <rect x="2" y="2"  width="12" height="12" fill="#1ed760" />
-      {/* Three white "wave" bars curving across */}
-      <rect x="4"  y="5"  width="8" height="1" fill="#fff" />
-      <rect x="4"  y="8"  width="7" height="1" fill="#fff" />
-      <rect x="5"  y="11" width="5" height="1" fill="#fff" />
+      {/* Guitar body (hourglass / strat-style) */}
+      <rect x="3"  y="9"  width="6" height="4" fill="#d44a30" />
+      <rect x="4"  y="13" width="4" height="1" fill="#d44a30" />
+      <rect x="4"  y="8"  width="4" height="1" fill="#d44a30" />
+      {/* Pickguard / lighter body face */}
+      <rect x="4"  y="10" width="4" height="2" fill="#f08060" />
+      {/* Neck */}
+      <rect x="8"  y="6"  width="2" height="4" fill="#3a2010" />
+      <rect x="9"  y="3"  width="2" height="4" fill="#3a2010" />
+      <rect x="10" y="1"  width="2" height="3" fill="#3a2010" />
+      {/* Fret markers */}
+      <rect x="8"  y="7"  width="2" height="1" fill="#fff" />
+      <rect x="9"  y="4"  width="2" height="1" fill="#fff" />
+      {/* Headstock */}
+      <rect x="9"  y="0"  width="4" height="2" fill="#1a1a1a" />
+      <rect x="13" y="1"  width="1" height="1" fill="#1a1a1a" />
+      {/* Bridge dots */}
+      <rect x="4"  y="12" width="1" height="1" fill="#1a1a1a" />
+      <rect x="7"  y="12" width="1" height="1" fill="#1a1a1a" />
     </svg>
   );
 }
 
-// Phone — green tile with white handset silhouette.
+// Phone — proper iOS handset silhouette (rotated 45°, curled J-shape).
 function PhoneAppIcon() {
   return (
     <svg viewBox="0 0 16 16" style={ICON_BOX}>
-      {/* handset shape */}
-      <rect x="3" y="3" width="2" height="2" fill="#fff" />
-      <rect x="4" y="4" width="2" height="2" fill="#fff" />
-      <rect x="5" y="5" width="2" height="2" fill="#fff" />
-      <rect x="6" y="6" width="2" height="2" fill="#fff" />
-      <rect x="7" y="7" width="2" height="2" fill="#fff" />
-      <rect x="8" y="8" width="2" height="2" fill="#fff" />
-      <rect x="9" y="9" width="2" height="2" fill="#fff" />
-      <rect x="10" y="10" width="2" height="2" fill="#fff" />
-      <rect x="11" y="11" width="2" height="2" fill="#fff" />
-      {/* earpiece */}
+      {/* Earpiece (top-left ear cup) */}
+      <rect x="2" y="3" width="4" height="2" fill="#fff" />
       <rect x="3" y="2" width="3" height="1" fill="#fff" />
-      <rect x="2" y="3" width="1" height="2" fill="#fff" />
-      {/* mouthpiece */}
-      <rect x="10" y="13" width="3" height="1" fill="#fff" />
-      <rect x="13" y="11" width="1" height="2" fill="#fff" />
+      <rect x="2" y="5" width="2" height="1" fill="#fff" />
+      {/* Curving body — diagonal handset */}
+      <rect x="4" y="5" width="2" height="2" fill="#fff" />
+      <rect x="5" y="6" width="2" height="2" fill="#fff" />
+      <rect x="6" y="7" width="2" height="2" fill="#fff" />
+      <rect x="7" y="8" width="2" height="2" fill="#fff" />
+      <rect x="8" y="9" width="2" height="2" fill="#fff" />
+      <rect x="9" y="10" width="2" height="2" fill="#fff" />
+      {/* Mouthpiece (bottom-right ear cup) */}
+      <rect x="10" y="11" width="4" height="2" fill="#fff" />
+      <rect x="10" y="10" width="2" height="1" fill="#fff" />
+      <rect x="12" y="13" width="2" height="1" fill="#fff" />
     </svg>
   );
 }
@@ -536,21 +588,25 @@ function FilesIcon() {
   );
 }
 
-// Xcode — blue tile with white hammer.
-function XcodeIcon() {
+// Shortcuts — purple/pink gradient tile with two overlapping squares
+// (one rotated 45°), per iOS Shortcuts mark.
+function ShortcutsIcon() {
   return (
     <svg viewBox="0 0 16 16" style={ICON_BOX}>
-      {/* hammer head */}
-      <rect x="9" y="3" width="5" height="2" fill="#fff" />
-      <rect x="10" y="2" width="3" height="1" fill="#fff" />
-      <rect x="10" y="5" width="3" height="1" fill="#fff" />
-      {/* hammer handle */}
-      <rect x="6" y="6" width="1" height="2" fill="#fff" />
-      <rect x="5" y="8" width="1" height="2" fill="#fff" />
-      <rect x="4" y="10" width="1" height="2" fill="#fff" />
-      <rect x="3" y="12" width="1" height="1" fill="#fff" />
-      {/* connector */}
-      <rect x="7" y="5" width="2" height="2" fill="#fff" />
+      {/* Back square (pink, rotated diamond) */}
+      <rect x="6" y="0" width="2" height="2" fill="#ff5a8c" />
+      <rect x="5" y="1" width="4" height="2" fill="#ff5a8c" />
+      <rect x="4" y="2" width="6" height="2" fill="#ff5a8c" />
+      <rect x="3" y="3" width="8" height="2" fill="#ff5a8c" />
+      <rect x="4" y="5" width="6" height="1" fill="#ff5a8c" />
+      <rect x="5" y="6" width="4" height="1" fill="#ff5a8c" />
+      <rect x="6" y="7" width="2" height="1" fill="#ff5a8c" />
+      {/* Front square (blue) — overlapping bottom-right */}
+      <rect x="8"  y="8"  width="6" height="6" fill="#3a9eff" />
+      <rect x="9"  y="7"  width="4" height="1" fill="#3a9eff" />
+      <rect x="9"  y="14" width="4" height="1" fill="#3a9eff" />
+      <rect x="7"  y="9"  width="1" height="4" fill="#3a9eff" />
+      <rect x="14" y="9"  width="1" height="4" fill="#3a9eff" />
     </svg>
   );
 }
@@ -587,142 +643,195 @@ function AppleMusicIcon() {
 // Each AppIcon is its own component so we can render real Apple-app
 // silhouettes (Spotify / Phone / Notes / Books / Calendar / Fitness / Files /
 // Xcode / Apple Music) instead of generic emoji squares.
+// App icons reuse real Apple-app visuals but the LABELS map straight to the
+// portfolio sections — Skills/Projects/Education/Experience/Music/Contact/
+// Journal/Interests/Now Playing — so the home screen reads as a portfolio.
 const APP_LIST: { id: SectionId; label: string; Icon: React.FC; bg: string }[] = [
-  { id: "skills",     label: "Files",    Icon: FilesIcon,     bg: "#f5f5f7" },
-  { id: "projects",   label: "Xcode",    Icon: XcodeIcon,     bg: "#1e6dd8" },
-  { id: "education",  label: "Books",    Icon: BooksIcon,     bg: "#f4c168" },
-  { id: "experience", label: "Calendar", Icon: CalendarIcon,  bg: "#ffffff" },
-  { id: "music",      label: "Spotify",  Icon: SpotifyIcon,   bg: "#000000" },
-  { id: "contact",    label: "Phone",    Icon: PhoneAppIcon,  bg: "#34c759" },
-  { id: "journal",    label: "Notes",    Icon: NotesIcon,     bg: "#fff6b0" },
-  { id: "interests",  label: "Fitness",  Icon: FitnessIcon,   bg: "#000000" },
-  { id: "nowplaying", label: "Music",    Icon: AppleMusicIcon,bg: "#fa233b" },
+  // skills → Files (blue folder on white)
+  { id: "skills",     label: "Skills",      Icon: FilesIcon,      bg: "#f5f5f7" },
+  // projects → Shortcuts (pink/blue overlapping squares)
+  { id: "projects",   label: "Projects",    Icon: ShortcutsIcon,  bg: "#ffffff" },
+  // education → Books (orange)
+  { id: "education",  label: "Education",   Icon: BooksIcon,      bg: "#f4c168" },
+  // experience → Calendar (white + red header + day)
+  { id: "experience", label: "Experience",  Icon: CalendarIcon,   bg: "#ffffff" },
+  // music → GarageBand (white + guitar)
+  { id: "music",      label: "Music",       Icon: GarageBandIcon, bg: "#ffffff" },
+  // contact → Phone (green + white handset)
+  { id: "contact",    label: "Contact",     Icon: PhoneAppIcon,   bg: "#34c759" },
+  // journal → Notes (yellow with red top + lines)
+  { id: "journal",    label: "Journal",     Icon: NotesIcon,      bg: "#fff6b0" },
+  // interests → Fitness (black + concentric rings)
+  { id: "interests",  label: "Interests",   Icon: FitnessIcon,    bg: "#000000" },
+  // nowplaying → Apple Music (red + note)
+  { id: "nowplaying", label: "Playing", Icon: AppleMusicIcon, bg: "#fa233b" },
 ];
 
 function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) => void }) {
-  // Bezel + wallpaper colors. Theme-aware.
-  const bezel = "#0a0a0c";
+  // Pixel-art iPhone — stepped octagonal corners + hard offset drop shadow.
+  const bezel = "#1a1a1c";
   const wallpaper = theme === "light"
-    ? "linear-gradient(180deg,#e8c8c0 0%,#b0a0b8 50%,#3a4262 100%)"
-    : "linear-gradient(180deg,#1a2240 0%,#2a2848 35%,#4a2848 65%,#1a1428 100%)";
+    ? "linear-gradient(180deg,#f8e1d6 0%,#d4a6b0 35%,#7a5a90 70%,#2a3258 100%)"
+    : "linear-gradient(180deg,#1a2240 0%,#2a2548 35%,#4a2848 65%,#1a0e28 100%)";
 
-  // Phone leans against the monitor on the desk. The desk surface sits
-  // at ~63% of viewport height (DESK_TOP_Y/CH); the phone's bottom rests
-  // there. Phone top reaches up to where the monitor screen begins.
   return (
-    <div
-      className="absolute inset-0 z-10 pointer-events-none"
-      style={{ imageRendering: "pixelated" as React.CSSProperties["imageRendering"] }}
-    >
-      {/* Charging cable: from phone bottom-left, snakes down across the desk
-          to behind the monitor (off-screen right). White Apple-cable feel. */}
+    <div className="absolute inset-0 z-10 pointer-events-none">
+      {/* Charging cable — runs from below up into the phone's bottom-middle.
+          No visible plug head; cable just disappears into the phone bezel. */}
       <div
         className="absolute pointer-events-none"
         style={{
-          left: "calc(50% - 16vw)",
-          top: "calc(63% + 4px)",          // emerges where the phone bottom meets desk surface
-          width: "30vw",
-          maxWidth: "180px",
-          height: "3px",
-          background: "#f4f4f4",
-          transform: "rotate(6deg)",
-          transformOrigin: "left center",
-          boxShadow: "0 2px 0 rgba(0,0,0,0.4)",
+          left: "50%",
+          bottom: "0",
+          width: "8px",
+          height: "10vh",
+          transform: "translateX(-50%)",
+          background:
+            "linear-gradient(180deg,#ffffff 0%,#ffffff 60%,#d8d8d8 100%)",
+          borderRadius: "4px",
+          boxShadow: "1px 0 0 rgba(0,0,0,0.35)",
         }}
       />
 
-      {/* ── Phone — leaning against the monitor base on the desk ── */}
-      <div
-        className="absolute inset-0 flex justify-center pointer-events-none"
-      >
+      <div className="absolute inset-0 flex justify-center items-end pb-[6vh] pointer-events-none">
+        {/* Phone bezel — true rounded corners, hard pixel drop shadow */}
         <div
           className="relative pointer-events-auto"
           style={{
-            // Position so phone bottom sits on desk surface and top reaches up
-            // to roughly the lower half of the monitor screen.
-            position: "absolute",
-            top: "8vh",
-            bottom: "calc(100vh - 63vh - 4vh)",  // bottom at 63% (desk top) - small overlap
-            aspectRatio: "9 / 19",
-            maxWidth: "70vw",
+            height: "min(66vh, 620px)",
+            aspectRatio: "9 / 19.5",
+            maxWidth: "62vw",
             background: bezel,
-            padding: "6px",
-            border: "2px solid #000",
+            padding: "5px",
+            borderRadius: "44px",
+            // Hard offset pixel shadow + soft ambient.
             boxShadow:
-              "0 0 0 2px #1a1a1c, 4px 4px 0 #000, 8px 14px 0 rgba(0,0,0,0.5)",
-            // Slight backward lean — looks like it rests against the monitor.
-            transform: "rotate(-3deg) translateY(-1vh)",
+              "8px 8px 0 rgba(0,0,0,0.55), 0 18px 40px rgba(0,0,0,0.45)",
+            transform: "rotate(-2deg)",
             transformOrigin: "bottom center",
-            imageRendering: "pixelated" as React.CSSProperties["imageRendering"],
           }}
         >
           {/* Screen */}
           <div
             className="relative w-full h-full overflow-hidden flex flex-col"
-            style={{
-              background: wallpaper,
-              border: "1px solid #161618",
-            }}
+            style={{ background: wallpaper, borderRadius: "38px" }}
           >
-            {/* Dynamic island — pixelated pill */}
+            {/* Dynamic island — clean rounded pill (sized so it never eats
+                the time on the left or the cell/wifi/battery on the right). */}
             <div
-              className="absolute left-1/2 -translate-x-1/2 z-10"
+              className="absolute left-1/2 -translate-x-1/2"
               style={{
-                top: "8px",
-                width: "32%",
-                maxWidth: "118px",
-                height: "20px",
+                top: "10px",
+                width: "22%",
+                maxWidth: "84px",
+                minWidth: "62px",
+                height: "22px",
                 background: "#000",
-                border: "1px solid #1a1a1a",
-                borderRadius: "0px",
-                boxShadow: "inset 1px 1px 0 #2a2a2a",
+                borderRadius: "9999px",
+                zIndex: 1,
               }}
             />
-            {/* Status bar */}
+            {/* Status bar — pixel divs; z-index above the island so the
+                cellular/wifi icons never get covered by it. */}
             <div
-              className="flex items-center justify-between px-5 pt-2 text-white font-mono select-none"
-              style={{ fontSize: "11px", letterSpacing: "0.04em" }}
+              className="flex items-center justify-between px-4 pt-3 text-white select-none relative"
+              style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "-0.01em", zIndex: 2 }}
             >
               <span>9:41</span>
-              <span className="opacity-90">▮▮▮▮ 100%</span>
+              <div className="flex items-end gap-2">
+                {/* Wifi — stepped pixel-art arc */}
+                <div className="relative" style={{ width: "14px", height: "10px" }}>
+                  {/* outer arc */}
+                  <div style={{ position: "absolute", top: 0, left: "2px",  width: "10px", height: "2px", background: "#fff" }} />
+                  <div style={{ position: "absolute", top: "1px", left: 0,    width: "2px",  height: "2px", background: "#fff" }} />
+                  <div style={{ position: "absolute", top: "1px", left: "12px",width: "2px",  height: "2px", background: "#fff" }} />
+                  {/* middle arc */}
+                  <div style={{ position: "absolute", top: "4px", left: "4px", width: "6px",  height: "2px", background: "#fff" }} />
+                  <div style={{ position: "absolute", top: "5px", left: "3px", width: "1px",  height: "1px", background: "#fff" }} />
+                  <div style={{ position: "absolute", top: "5px", left: "10px",width: "1px",  height: "1px", background: "#fff" }} />
+                  {/* dot */}
+                  <div style={{ position: "absolute", top: "8px", left: "6px", width: "2px",  height: "2px", background: "#fff" }} />
+                </div>
+                {/* Battery — rounded body + pixel cap + charging fill + bolt */}
+                <div className="relative" style={{ width: "28px", height: "11px" }}>
+                  {/* Body outline */}
+                  <div
+                    style={{
+                      position: "absolute", top: 0, left: 0,
+                      width: "22px", height: "11px",
+                      border: "1px solid #fff",
+                      borderRadius: "3px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  {/* Nub */}
+                  <div style={{ position: "absolute", top: "3px", left: "23px", width: "2px", height: "5px", background: "#fff", borderRadius: "1px" }} />
+                  {/* Charging fill — Apple green to indicate plugged in */}
+                  <div
+                    style={{
+                      position: "absolute", top: "2px", left: "2px",
+                      width: "18px", height: "7px",
+                      background: "#34c759",
+                      borderRadius: "1px",
+                    }}
+                  />
+                  {/* Lightning bolt overlay (pixel-art) */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "1px", left: "9px",
+                      width: "6px", height: "9px",
+                      // Zig-zag bolt clip-path
+                      clipPath:
+                        "polygon(60% 0, 0 55%, 38% 55%, 22% 100%, 100% 38%, 55% 38%, 80% 0)",
+                      background: "#fff",
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-            {/* Greeting */}
-            <div className="text-center pt-10 pb-1 select-none">
-              <div className="text-white font-mono font-bold tracking-tight" style={{ fontSize: "18px" }}>
+            {/* Date + name */}
+            <div className="text-center pt-8 pb-4 select-none">
+              <div className="text-white/70 text-[12px] font-semibold tracking-wide uppercase">
+                Wednesday · 31
+              </div>
+              <div className="text-white font-bold tracking-tight mt-0.5" style={{ fontSize: "28px", letterSpacing: "-0.02em" }}>
                 rohan.sah
               </div>
-              <div className="text-white/70 font-mono uppercase mt-1" style={{ fontSize: "9px", letterSpacing: "0.22em" }}>
-                tap an app
-              </div>
             </div>
-            {/* App grid */}
-            <div className="flex-1 flex items-center px-4">
-              <div className="grid grid-cols-3 gap-y-4 gap-x-2 w-full">
+            {/* App grid — proper squircle icons */}
+            <div className="flex-1 flex items-start px-4 pt-2">
+              <div className="grid grid-cols-3 gap-y-4 gap-x-3 w-full">
                 {APP_LIST.map(app => {
                   const Icon = app.Icon;
                   return (
                     <button
                       key={app.id}
                       onClick={() => onOpen(app.id)}
-                      className="flex flex-col items-center gap-1 group"
+                      className="flex flex-col items-center gap-1.5 group"
                     >
                       <div
                         className="flex items-center justify-center group-active:translate-y-px transition-transform"
                         style={{
-                          width: "min(16vw, 58px)",
-                          height: "min(16vw, 58px)",
+                          width: "min(15vw, 56px)",
+                          height: "min(15vw, 56px)",
                           background: app.bg,
-                          // Pixel-art frame: hard 2px black border, no radius
-                          border: "2px solid #000",
-                          boxShadow: "2px 2px 0 #000, inset 1px 1px 0 rgba(255,255,255,0.18)",
+                          // Pixel-art chamfered "squircle" — stepped corners.
+                          clipPath:
+                            "polygon(6px 0, calc(100% - 6px) 0, calc(100% - 3px) 3px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 3px calc(100% - 3px), 0 calc(100% - 6px), 0 6px, 3px 3px)",
+                          boxShadow: "3px 3px 0 rgba(0,0,0,0.45)",
                           imageRendering: "pixelated" as React.CSSProperties["imageRendering"],
                         }}
                       >
                         <Icon />
                       </div>
                       <span
-                        className="text-white font-mono"
-                        style={{ fontSize: "9px", textShadow: "1px 1px 0 #000" }}
+                        className="text-white whitespace-nowrap"
+                        style={{
+                          fontSize: "clamp(8px, 2.4vw, 11px)",
+                          fontWeight: 500,
+                          textShadow: "0 1px 1px rgba(0,0,0,0.4)",
+                        }}
                       >
                         {app.label}
                       </span>
@@ -731,9 +840,14 @@ function PhoneScreen({ theme, onOpen }: { theme: Theme; onOpen: (id: SectionId) 
                 })}
               </div>
             </div>
-            {/* Home indicator */}
+            {/* Page dots */}
+            <div className="flex justify-center gap-1.5 pb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
+            </div>
+            {/* Home indicator — proper iOS pill */}
             <div className="flex justify-center pb-2">
-              <div style={{ width: "34%", height: "3px", background: "#fff", border: "1px solid #000" }} />
+              <div className="bg-white rounded-full" style={{ width: "34%", height: "4px" }} />
             </div>
           </div>
         </div>
@@ -792,6 +906,9 @@ function RainOverlay({ enableThunder }: { enableThunder: boolean }) {
 function Thunder() {
   const [strikeId, setStrikeId] = useState(0);
   const [bolt, setBolt] = useState<{ id: number; x: number } | null>(null);
+  // Monotonic counter so each strike has a unique key even if two land in
+  // the same millisecond (Date.now() can collide; React then complains).
+  const counterRef = useRef(0);
 
   useEffect(() => {
     let timeout: number | undefined;
@@ -800,10 +917,10 @@ function Thunder() {
       const wait = 5000 + Math.random() * 7000;
       timeout = window.setTimeout(() => {
         if (cancelled) return;
-        const id = Date.now();
+        counterRef.current += 1;
+        const id = counterRef.current;
         setStrikeId(id);
         if (Math.random() < 0.45) {
-          // Bolt strikes a random x in the window area.
           setBolt({ id, x: 10 + Math.random() * 80 });
           window.setTimeout(() => setBolt(null), 850);
         }
@@ -876,13 +993,14 @@ function RainToggle({ raining, onToggle }: { raining: boolean; onToggle: () => v
                  text-neutral-300 hover:text-white"
     >
       {raining ? (
-        // Sun icon — stop the rain
+        // Cloud-with-line icon — "stop the rain" (NOT a sun, so it doesn't
+        // collide visually with the ThemeToggle's sun icon).
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+          <path d="M16 13a4 4 0 0 0 0-8 5 5 0 0 0-9.78-1A4.5 4.5 0 1 0 5 13h11Z" />
+          <line x1="3" y1="20" x2="21" y2="20" />
         </svg>
       ) : (
-        // Cloud + rain icon — make it rain
+        // Cloud + rain drops — make it rain
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 13a4 4 0 0 0 0-8 5 5 0 0 0-9.78-1A4.5 4.5 0 1 0 5 13h11Z" />
           <path d="M8 19l-1 2" />
@@ -971,8 +1089,11 @@ function TerminalOverlay({
         fontFamily: "var(--font-geist-mono), ui-monospace, Menlo, monospace",
         textShadow: t.shadow,
         padding: "1.4% 1.6%",
-        lineHeight: 1.35,
-        fontSize: "clamp(10px, 1.25vw, 18px)",
+        lineHeight: 1.3,
+        // Smaller upper bound + viewport-floor so long screens don't blow text up.
+        fontSize: "clamp(9px, 1.0vw, 14px)",
+        // Strictly clip — nothing can spill past the monitor's screen rect.
+        contain: "paint",
       }}
     >
       <div
@@ -1131,13 +1252,23 @@ function useNowPlaying(): NowPlayingState {
           durationSec?: number;
           currentSec?: number;
         };
-        if (!data.configured) return; // keep showing the fallback preview
+        if (!data.configured) return;   // no token configured — keep static preview
         if (!data.title) {
-          setState({ ...fallback, live: true, isPlaying: false });
+          // API works but there's no track to show. Flip to a real "nothing
+          // playing" state instead of the Tracy Chapman static preview.
+          setState({
+            title: "",
+            artist: "",
+            album: "",
+            durationSec: 0,
+            currentSec: 0,
+            isPlaying: false,
+            live: true,
+          });
           return;
         }
         setState({
-          title: data.title ?? "—",
+          title: data.title,
           artist: data.artist ?? "",
           album: data.album ?? "",
           artworkUrl: data.artworkUrl,
@@ -1154,8 +1285,6 @@ function useNowPlaying(): NowPlayingState {
     fetchOnce();
     const id = window.setInterval(fetchOnce, 15000);
     return () => { cancelled = true; window.clearInterval(id); };
-    // fallback is stable per render; intentional empty dep array
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return state;
@@ -1168,6 +1297,42 @@ function NowPlayingCard({ theme = "dark" }: { theme?: Theme }) {
   const t = theme === "light"
     ? { title: "#1a1a1a", artist: "#5a5a5a", album: "#8a8a8a", bar: "#dcd8d0", time: "#8a8a8a", btn: "#1a1a1a", btnBg: "#1a1a1a", btnFg: "#fff", foot: "#8a8a8a" }
     : { title: "#fff", artist: "#a3a3a3", album: "#737373", bar: "#262626", time: "#737373", btn: "#fff", btnBg: "#fff", btnFg: "#000", foot: "#737373" };
+
+  // Empty live state: Spotify returned no track. Render a minimal
+  // "nothing playing" card instead of a fake track + progress bar.
+  if (track.live && !track.title) {
+    return (
+      <div className="flex flex-col items-center gap-4 px-2 py-8">
+        {/* Empty muted album frame */}
+        <div
+          className="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl flex items-center justify-center"
+          style={{
+            background: theme === "light" ? "#ece8df" : "#1a1a1a",
+            color: theme === "light" ? "#a8a39a" : "#3a3a3a",
+            boxShadow: theme === "light" ? "0 6px 18px rgba(0,0,0,0.06)" : "inset 0 0 0 1px #262626",
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>
+        </div>
+        <div className="text-center">
+          <div className="text-xl sm:text-2xl font-semibold tracking-tight" style={{ color: t.title }}>
+            Nothing playing
+          </div>
+          <div className="text-sm mt-1.5" style={{ color: t.artist }}>
+            Rohan isn&apos;t listening to anything right now.
+          </div>
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.25em] mt-4" style={{ color: t.foot }}>
+          live · spotify
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center gap-6 sm:gap-8 px-2">
       <div
@@ -1181,7 +1346,6 @@ function NowPlayingCard({ theme = "dark" }: { theme?: Theme }) {
             : "0 20px 60px rgba(0,0,0,0.6), inset 0 0 80px rgba(255,255,255,0.04)",
         }}
       />
-      
       <div className="text-center w-full">
         <div className="text-2xl sm:text-3xl font-semibold tracking-tight" style={{ color: t.title }}>{track.title}</div>
         <div className="text-base mt-1" style={{ color: t.artist }}>{track.artist}</div>
@@ -1189,28 +1353,28 @@ function NowPlayingCard({ theme = "dark" }: { theme?: Theme }) {
           <div className="text-xs mt-0.5 uppercase tracking-widest" style={{ color: t.album }}>{track.album}</div>
         )}
       </div>
-      <div className="w-full max-w-sm">
-        <div className="h-1 rounded-full overflow-hidden" style={{ background: t.bar }}>
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "#1db954" }} />
+      {track.isPlaying ? (
+        <div className="w-full max-w-sm">
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: t.bar }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "#1db954" }} />
+          </div>
+          <div className="flex justify-between text-xs mt-1.5 tabular-nums" style={{ color: t.time }}>
+            <span>{fmt(track.currentSec)}</span>
+            <span>-{fmt(Math.max(0, track.durationSec - track.currentSec))}</span>
+          </div>
         </div>
-        <div className="flex justify-between text-xs mt-1.5 tabular-nums" style={{ color: t.time }}>
-          <span>{fmt(track.currentSec)}</span>
-          <span>-{fmt(Math.max(0, track.durationSec - track.currentSec))}</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-8" style={{ color: t.btn }}>
-        <button className="text-2xl opacity-80 hover:opacity-100 transition" aria-label="previous">⏮</button>
-        <button className="w-14 h-14 rounded-full flex items-center justify-center text-2xl hover:scale-105 transition"
-                style={{ background: t.btnBg, color: t.btnFg }} aria-label="play/pause">
-          {track.isPlaying ? "⏸" : "▶"}
-        </button>
-        <button className="text-2xl opacity-80 hover:opacity-100 transition" aria-label="next">⏭</button>
-      </div>
-      <div className="text-[10px] uppercase tracking-[0.25em] mt-4" style={{ color: t.foot }}>
+      ) : (
+        <div className="text-xs tabular-nums" style={{ color: t.time }}>{fmt(track.durationSec)}</div>
+      )}
+      <div className="text-[10px] uppercase tracking-[0.25em] mt-2" style={{ color: t.foot }}>
         {track.live
-          ? (track.url
-              ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#1db954]">live · spotify ↗</a>
-              : "live · spotify")
+          ? (track.isPlaying
+              ? (track.url
+                  ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#1db954]">▶ now playing · spotify ↗</a>
+                  : "▶ now playing · spotify")
+              : (track.url
+                  ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#1db954]">last played · spotify ↗</a>
+                  : "last played · spotify"))
           : "preview · configure SPOTIFY_REFRESH_TOKEN in .env.local"}
       </div>
     </div>
