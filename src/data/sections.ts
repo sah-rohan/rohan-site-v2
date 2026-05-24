@@ -105,15 +105,19 @@ Meta Pyrefly  ·  in progress
  
 personal
 ────────────────────────────
-RAG RMP
-  Rate My Professor RAG assistant for ISU —
-  semantic search over professor reviews with LLM-powered Q&A.
-  Python · RAG · Pinecone · OpenAI
- 
 Distributed KV Store
   Fault-tolerant distributed key-value store with
   consensus and replication.
   Go · Distributed Systems · Raft
+
+Federated Learning Platform
+  Privacy-preserving federated ML across edge devices.
+  Rust · C++ · Python · PyTorch · Prometheus · Distributed Systems
+
+RAG RMP
+  Rate My Professor RAG assistant for ISU —
+  semantic search over professor reviews with LLM-powered Q&A.
+  Python · RAG · Pinecone · OpenAI
  
 FDA API  ·  Ivy College of Business
   Internal tool for bulk FDA data retrieval —
@@ -123,10 +127,6 @@ FDA API  ·  Ivy College of Business
 Precision Project Pilot
   AI-assisted project planning and scoping tool.
   TypeScript · React · OpenAI · System Design
- 
-Federated Learning Platform
-  Privacy-preserving federated ML across edge devices.
-  Rust · C++ · Python · PyTorch · Prometheus · Distributed Systems
  
 AI Polls
   AI-powered voting platform with RAG chatbot + custom email auth.
@@ -147,10 +147,6 @@ Asteroid Detection
 MongoScraper
   Web scraper persisting URL data into MongoDB for API-free dev.
   React · Node.js · MongoDB · Puppeteer
- 
-ISU Professor Recommender
-  RAG tool matching professors to research interests.
-  React · Next.js · Pinecone · Python · RAG · Firebase
  
 CS 362 (OOAD) Capstone
   40+ exhaustive use cases + custom JSON parser to model a university.
