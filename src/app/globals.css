@@ -65,3 +65,14 @@ html, body {
   animation: bolt-flash 0.8s ease-out both;
   transform-origin: top center;
 }
+
+/* Car driving left-to-right across the bridge */
+@keyframes car-lr {
+  0%   { transform: translateX(-4vw); }
+  100% { transform: translateX(104vw); }
+}
+/* Car driving right-to-left */
+@keyframes car-rl {
+  0%   { transform: translateX(104vw) scaleX(-1); }
+  100% { transform: translateX(-4vw)  scaleX(-1); }
+}

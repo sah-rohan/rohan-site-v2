@@ -333,6 +333,7 @@ export default function PixelDesk() {
             if (z) playType(z.id);
           }}
         />
+        <CarsOverlay theme={theme} />
         {raining && <RainOverlay enableThunder={theme === "dark"} />}
         {screenRect && (
           <TerminalOverlay rect={screenRect} state={terminal} />
@@ -378,6 +379,105 @@ export default function PixelDesk() {
 // portion of the viewport (the "outside the window" area, above the desk).
 // Each drop is a thin slanted line with random column, delay, and speed.
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// CarsOverlay — tiny cars driving across the Bay Bridge deck.
+// Two lanes (left→right and right→left) with multiple cars, randomized
+// speed + delay so they don't all move in lockstep. Positioned at the
+// bridge-deck y-band of the canvas (~41% from top, accounting for the
+// procedural drawBayBridge layout).
+// ─────────────────────────────────────────────────────────────
+function CarsOverlay({ theme }: { theme: Theme }) {
+  const cars = useMemo(() => {
+    // Deterministic pseudo-random so the cars don't reshuffle on every render.
+    return Array.from({ length: 8 }, (_, i) => {
+      const r1 = ((i * 9301 + 49297) % 233280) / 233280;
+      const r2 = ((i * 7901 + 13127) % 233280) / 233280;
+      return {
+        dir: i % 2 === 0 ? "lr" as const : "rl" as const,
+        duration: 14 + r1 * 12,
+        delay: -r2 * 14,           // negative so cars are mid-route on mount
+        offsetY: (r2 - 0.5) * 4,   // tiny vertical jitter for two-deck illusion
+      };
+    });
+  }, []);
+
+  // Cars drive on the bridge deck. The deck sits roughly at 0.66 × DESK_TOP_Y
+  // of the canvas, and DESK_TOP_Y is ~63% of CH — so the deck band is at
+  // ≈ 41.5% of the viewport height.
+  const carColors = theme === "dark"
+    ? ["#1a1a22", "#2a2438", "#1f1a2a", "#181620"]
+    : ["#3a2418", "#4a2820", "#502a18", "#3a2218"];
+  const headlight = theme === "dark" ? "#fff4c8" : "transparent";
+  const taillight = theme === "dark" ? "#ff5a3a" : "transparent";
+
+  return (
+    <div
+      className="absolute inset-x-0 pointer-events-none overflow-hidden"
+      style={{
+        top: "40.5%",
+        height: "5%",
+      }}
+    >
+      {cars.map((c, i) => {
+        const carColor = carColors[i % carColors.length];
+        return (
+          <div
+            key={i}
+            className="absolute"
+            style={{
+              top: `${50 + c.offsetY * 8}%`,
+              left: 0,
+              width: "18px",
+              height: "7px",
+              animation: `car-${c.dir} ${c.duration}s linear ${c.delay}s infinite`,
+              willChange: "transform",
+            }}
+          >
+            {/* car body */}
+            <div
+              className="absolute inset-0 rounded-[1px]"
+              style={{ background: carColor }}
+            />
+            {/* roof / windshield highlight */}
+            <div
+              className="absolute"
+              style={{
+                top: 0, left: "30%",
+                width: "40%", height: "50%",
+                background: theme === "dark" ? "#3a3a45" : "#7a4a30",
+                borderRadius: "1px",
+              }}
+            />
+            {/* headlight (front of car, in the direction of motion) */}
+            <div
+              className="absolute"
+              style={{
+                top: "30%",
+                right: c.dir === "lr" ? "-1px" : "auto",
+                left: c.dir === "rl" ? "-1px" : "auto",
+                width: "2px", height: "2px",
+                background: headlight,
+                boxShadow: theme === "dark" ? "0 0 4px #fff4c8" : "none",
+              }}
+            />
+            {/* taillight */}
+            <div
+              className="absolute"
+              style={{
+                top: "30%",
+                left: c.dir === "lr" ? "-1px" : "auto",
+                right: c.dir === "rl" ? "-1px" : "auto",
+                width: "2px", height: "2px",
+                background: taillight,
+              }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function RainOverlay({ enableThunder }: { enableThunder: boolean }) {
   const drops = useMemo(() => {
     return Array.from({ length: 90 }, (_, i) => {
