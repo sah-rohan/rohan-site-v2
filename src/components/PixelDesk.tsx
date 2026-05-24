@@ -367,7 +367,7 @@ export default function PixelDesk() {
         })()}
       </div>
       {active && (
-        <SectionModal id={active} onClose={() => setActive(null)} />
+        <SectionModal id={active} theme={theme} onClose={() => setActive(null)} />
       )}
       {/* Bottom-right control cluster: rain + theme toggles */}
       <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5">
@@ -418,8 +418,8 @@ function CarsOverlay({ theme }: { theme: Theme }) {
     <div
       className="absolute inset-x-0 pointer-events-none overflow-hidden"
       style={{
-        top: "40.5%",
-        height: "5%",
+        top: "39%",
+        height: "8%",
       }}
     >
       {cars.map((c, i) => {
@@ -429,50 +429,54 @@ function CarsOverlay({ theme }: { theme: Theme }) {
             key={i}
             className="absolute"
             style={{
-              top: `${50 + c.offsetY * 8}%`,
+              top: `${30 + c.offsetY * 8}%`,
               left: 0,
-              width: "18px",
-              height: "7px",
+              // Bigger + viewport-relative so cars are visible on any screen.
+              width: "2.5vw",
+              minWidth: "30px",
+              height: "1vw",
+              minHeight: "12px",
               animation: `car-${c.dir} ${c.duration}s linear ${c.delay}s infinite`,
               willChange: "transform",
             }}
           >
             {/* car body */}
             <div
-              className="absolute inset-0 rounded-[1px]"
-              style={{ background: carColor }}
+              className="absolute inset-0 rounded-[2px]"
+              style={{ background: carColor, boxShadow: "0 1px 0 rgba(0,0,0,0.4)" }}
             />
             {/* roof / windshield highlight */}
             <div
               className="absolute"
               style={{
-                top: 0, left: "30%",
-                width: "40%", height: "50%",
-                background: theme === "dark" ? "#3a3a45" : "#7a4a30",
+                top: "20%", left: "25%",
+                width: "50%", height: "45%",
+                background: theme === "dark" ? "#5a5a68" : "#9a6840",
                 borderRadius: "1px",
               }}
             />
             {/* headlight (front of car, in the direction of motion) */}
             <div
-              className="absolute"
+              className="absolute rounded-full"
               style={{
-                top: "30%",
-                right: c.dir === "lr" ? "-1px" : "auto",
-                left: c.dir === "rl" ? "-1px" : "auto",
-                width: "2px", height: "2px",
+                top: "35%",
+                right: c.dir === "lr" ? "-2px" : "auto",
+                left: c.dir === "rl" ? "-2px" : "auto",
+                width: "3px", height: "3px",
                 background: headlight,
-                boxShadow: theme === "dark" ? "0 0 4px #fff4c8" : "none",
+                boxShadow: theme === "dark" ? "0 0 6px 2px #fff4c8" : "none",
               }}
             />
             {/* taillight */}
             <div
-              className="absolute"
+              className="absolute rounded-full"
               style={{
-                top: "30%",
+                top: "35%",
                 left: c.dir === "lr" ? "-1px" : "auto",
                 right: c.dir === "rl" ? "-1px" : "auto",
                 width: "2px", height: "2px",
                 background: taillight,
+                boxShadow: theme === "dark" ? "0 0 4px #ff5a3a" : "none",
               }}
             />
           </div>
@@ -750,7 +754,9 @@ function TerminalOverlay({
 // ─────────────────────────────────────────────────────────────
 // Modal — full-screen Apple-style window with section content.
 // ─────────────────────────────────────────────────────────────
-function SectionModal({ id, onClose }: { id: SectionId; onClose: () => void }) {
+function SectionModal({
+  id, onClose, theme,
+}: { id: SectionId; onClose: () => void; theme: Theme }) {
   const s = SECTIONS[id];
 
   useEffect(() => {
@@ -759,25 +765,50 @@ function SectionModal({ id, onClose }: { id: SectionId; onClose: () => void }) {
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
+  // Theme-aware modal tokens.
+  const m = theme === "light"
+    ? {
+        backdrop: "rgba(245,240,232,0.65)",
+        windowBg: "#fafaf6",
+        titleBar: "#ececea",
+        titleBarBorder: "#d8d4cc",
+        windowBorder: "#d0ccc4",
+        cmd: "#8a8478",
+        body: "#1a1a1a",
+      }
+    : {
+        backdrop: "rgba(5,5,5,0.75)",
+        windowBg: "#0d0d0d",
+        titleBar: "#1a1a1a",
+        titleBarBorder: "#262626",
+        windowBorder: "#262626",
+        cmd: "#737373",
+        body: "#d4d4d4",
+      };
+
   return (
     <div
       className="absolute inset-0 z-20 flex items-center justify-center p-6 sm:p-12 animate-fadein"
-      style={{ background: "rgba(5,5,5,0.75)", backdropFilter: "blur(6px)" }}
+      style={{ background: m.backdrop, backdropFilter: "blur(6px)" }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl h-[min(80vh,640px)] rounded-xl overflow-hidden shadow-2xl border border-neutral-800 bg-[#0d0d0d] text-neutral-100 flex flex-col animate-popin"
+        className="relative w-full max-w-3xl h-[min(80vh,640px)] rounded-xl overflow-hidden shadow-2xl flex flex-col animate-popin"
+        style={{ background: m.windowBg, border: `1px solid ${m.windowBorder}`, color: m.body }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] border-b border-neutral-800">
+        <div
+          className="flex items-center gap-2 px-3 py-2"
+          style={{ background: m.titleBar, borderBottom: `1px solid ${m.titleBarBorder}` }}
+        >
           <button onClick={onClose} className="w-3 h-3 rounded-full bg-[#ff5f57] hover:brightness-125" aria-label="close" />
           <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
           <span className="w-3 h-3 rounded-full bg-[#28c840]" />
-          <span className="ml-3 font-mono text-[11px] tracking-widest text-neutral-500 uppercase">{s.cmd}</span>
+          <span className="ml-3 font-mono text-[11px] tracking-widest uppercase" style={{ color: m.cmd }}>{s.cmd}</span>
         </div>
         <div className="flex-1 overflow-y-auto px-8 sm:px-12 py-10 font-mono">
           {id === "nowplaying" ? (
-            <NowPlayingCard />
+            <NowPlayingCard theme={theme} />
           ) : (
             <>
               <h1
@@ -786,7 +817,7 @@ function SectionModal({ id, onClose }: { id: SectionId; onClose: () => void }) {
               >
                 {s.title}
               </h1>
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">
+              <pre className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: m.body }}>
                 {s.body}
               </pre>
             </>
@@ -874,57 +905,51 @@ function useNowPlaying(): NowPlayingState {
   return state;
 }
 
-function NowPlayingCard() {
+function NowPlayingCard({ theme = "dark" }: { theme?: Theme }) {
   const track = useNowPlaying();
   const pct = track.durationSec > 0 ? (track.currentSec / track.durationSec) * 100 : 0;
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s % 60)).padStart(2, "0")}`;
+  const t = theme === "light"
+    ? { title: "#1a1a1a", artist: "#5a5a5a", album: "#8a8a8a", bar: "#dcd8d0", time: "#8a8a8a", btn: "#1a1a1a", btnBg: "#1a1a1a", btnFg: "#fff", foot: "#8a8a8a" }
+    : { title: "#fff", artist: "#a3a3a3", album: "#737373", bar: "#262626", time: "#737373", btn: "#fff", btnBg: "#fff", btnFg: "#000", foot: "#737373" };
   return (
     <div className="flex flex-col items-center gap-6 sm:gap-8 px-2">
-      {/* Album art */}
       <div
         className="w-44 h-44 sm:w-56 sm:h-56 rounded-2xl shadow-2xl overflow-hidden"
         style={{
           background: track.artworkUrl
             ? `url(${track.artworkUrl}) center/cover no-repeat`
             : "linear-gradient(135deg, #2a3a5e 0%, #6a4080 45%, #c8506a 100%)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0 80px rgba(255,255,255,0.04)",
+          boxShadow: theme === "light"
+            ? "0 18px 50px rgba(0,0,0,0.18)"
+            : "0 20px 60px rgba(0,0,0,0.6), inset 0 0 80px rgba(255,255,255,0.04)",
         }}
       />
-      {/* Track meta */}
       <div className="text-center w-full">
-        <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
-          {track.title}
-        </div>
-        <div className="text-base text-neutral-400 mt-1">{track.artist}</div>
+        <div className="text-2xl sm:text-3xl font-semibold tracking-tight" style={{ color: t.title }}>{track.title}</div>
+        <div className="text-base mt-1" style={{ color: t.artist }}>{track.artist}</div>
         {track.album && (
-          <div className="text-xs text-neutral-500 mt-0.5 uppercase tracking-widest">
-            {track.album}
-          </div>
+          <div className="text-xs mt-0.5 uppercase tracking-widest" style={{ color: t.album }}>{track.album}</div>
         )}
       </div>
-      {/* Progress bar */}
       <div className="w-full max-w-sm">
-        <div className="h-1 bg-neutral-800 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${pct}%`, background: "#1db954" }}
-          />
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: t.bar }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "#1db954" }} />
         </div>
-        <div className="flex justify-between text-xs text-neutral-500 mt-1.5 tabular-nums">
+        <div className="flex justify-between text-xs mt-1.5 tabular-nums" style={{ color: t.time }}>
           <span>{fmt(track.currentSec)}</span>
           <span>-{fmt(Math.max(0, track.durationSec - track.currentSec))}</span>
         </div>
       </div>
-      {/* Transport controls */}
-      <div className="flex items-center gap-8 text-white">
+      <div className="flex items-center gap-8" style={{ color: t.btn }}>
         <button className="text-2xl opacity-80 hover:opacity-100 transition" aria-label="previous">⏮</button>
-        <button className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center text-2xl hover:scale-105 transition" aria-label="play/pause">
+        <button className="w-14 h-14 rounded-full flex items-center justify-center text-2xl hover:scale-105 transition"
+                style={{ background: t.btnBg, color: t.btnFg }} aria-label="play/pause">
           {track.isPlaying ? "⏸" : "▶"}
         </button>
         <button className="text-2xl opacity-80 hover:opacity-100 transition" aria-label="next">⏭</button>
       </div>
-      {/* Status footer */}
-      <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-600 mt-4">
+      <div className="text-[10px] uppercase tracking-[0.25em] mt-4" style={{ color: t.foot }}>
         {track.live
           ? (track.url
               ? <a href={track.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#1db954]">live · spotify ↗</a>
