@@ -175,7 +175,7 @@ John Deere                                Present
 
 UCSF                                      Present
   Undergraduate Research Assistant
-  🩺  Digital twins for healthcare & Semi automated meta analysis
+  🩺  Digital twins for healthcare & semi automated meta analysis
 
 Ivy College of Business                   Present
   Software Engineering Research Assistant
