@@ -114,6 +114,24 @@ Federated Learning Platform
   Privacy-preserving federated ML across edge devices.
   Rust · C++ · Python · PyTorch · Prometheus · Distributed Systems
 
+LeetCode Tracker
+  AI-powered tracker w/ leaderboard + personalized challenges
+  (200+ visits · 28+ problems solved by users).
+  TypeScript · React · MongoDB · Clerk · Gemini · LeetCode API
+
+AI Polls
+  AI-powered voting platform with RAG chatbot + custom email auth.
+  SpringBoot · OpenAI · ONNX · Git · System Design · SQL
+
+PremierCashBack
+  AI-driven credit card cashback optimizer.
+  React · React Native · Tailwind · ClerkAPI · StripeAPI · Postgres · OpenAI
+
+Precision Project Pilot
+  Tool that helps engineers scope projects by generating
+  structured, high-quality AI prompts from requirements.
+  TypeScript · React · OpenAI
+
 RAG RMP
   Rate My Professor RAG assistant for ISU —
   semantic search over professor reviews with LLM-powered Q&A.
@@ -123,18 +141,6 @@ FDA API  ·  Ivy College of Business
   Internal tool for bulk FDA data retrieval —
   built for a professor's business research.
   React · Python · Data Engineering
- 
-Precision Project Pilot
-  AI-assisted project planning and scoping tool.
-  TypeScript · React · OpenAI · System Design
- 
-AI Polls
-  AI-powered voting platform with RAG chatbot + custom email auth.
-  SpringBoot · OpenAI · ONNX · Git · System Design · SQL
- 
-PremierCashBack
-  AI-driven credit card cashback optimizer.
-  React · React Native · Tailwind · ClerkAPI · StripeAPI · Postgres · OpenAI
  
 MemoraAI
   AI-powered flashcard platform.
@@ -151,11 +157,6 @@ MongoScraper
 CS 362 (OOAD) Capstone
   40+ exhaustive use cases + custom JSON parser to model a university.
   Java · Agile · UML · System Design · Git
- 
-LeetCode Tracker
-  AI-powered tracker w/ leaderboard + personalized challenges
-  (200+ visits · 28+ problems solved by users).
-  TypeScript · React · MongoDB · Clerk · Gemini · LeetCode API
  
 → github.com/sah-rohan`,
   },
