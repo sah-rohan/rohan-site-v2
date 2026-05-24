@@ -266,7 +266,7 @@ that don't have to ship.`,
       through a hard night
     · play a live set somewhere that
       actually means something to me
-    · keep learning piano voicings —
+    · keep learning piano voicings /
       quietly, every week
 
   life
