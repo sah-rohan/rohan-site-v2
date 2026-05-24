@@ -608,6 +608,103 @@ export function drawDesk(c: Ctx) {
   drawDeskLeg(c, xR - 28);
 }
 
+// Phone-view desk: ONE continuous slab of pixel-art wood that fills every-
+// thing from DESK_TOP_Y down to the bottom of the canvas. Same palette,
+// same grain lines, same stipple pattern as drawDesk — but no horizontal
+// seams, no legs, no floor below. Pure wood, edge to edge.
+export function drawPhoneDesk(c: Ctx) {
+  const xL = 0, xR = CW;
+  const top = DESK_TOP_Y;
+  const totalH = CH - top;
+  // Continuous wood fill — top band slightly lighter, rest darker, blended.
+  rect(c, xL, top, xR, totalH, W.d3);
+  // Vertical wood grain lines spanning the full height — no horizontal break.
+  for (let i = 0; i < 22; i++) {
+    const x = (i * 47 + 9) % xR;
+    rect(c, x, top + 2, 1, totalH - 4, W.d2);
+  }
+  // Stipple noise — same pattern density as drawDesk for visual continuity.
+  stipple(c, xL, top, xR, totalH, W.d4, 0.10, 19);
+  stipple(c, xL, top, xR, totalH, W.d2, 0.08, 23);
+  stipple(c, xL, top, xR, totalH, W.d5, 0.03, 37);
+}
+
+// Phone-view stand — modeled after a real wooden phone cradle:
+// two angled side supports + a horizontal base plank + a small front lip
+// the phone rests on. Sits at the bottom of the canvas so the phone HTML
+// overlay visually sits INSIDE it (elevated above the desk).
+// Theme-aware: light wood in light mode, near-black in dark mode.
+export function drawPhoneStand(c: Ctx, theme: Theme = "dark") {
+  const p = theme === "light"
+    ? { face: "#e8d8b8", hl: "#f4e8c8", mid: "#c8b090", sh: "#8a6f4a", grain: "#a8896a", deep: "#5a4028" }
+    : { face: "#1a1a1c", hl: "#2a2a2c", mid: "#0e0e10", sh: "#000000", grain: "#3a3a3c", deep: "#000000" };
+
+  const cx = CW >> 1;
+
+  // ── Base plank (horizontal slab at the very bottom) ──
+  const baseW = 220;
+  const baseH = 14;
+  const baseX = cx - baseW / 2;
+  const baseY = CH - baseH - 2;
+  rect(c, baseX, baseY, baseW, baseH, p.face);
+  hline(c, baseX, baseY, baseW, p.hl);                     // top
+  hline(c, baseX, baseY + baseH - 1, baseW, p.sh);         // bottom
+  vline(c, baseX, baseY, baseH, p.hl);
+  vline(c, baseX + baseW - 1, baseY, baseH, p.sh);
+  // Wood grain striations along the base
+  for (let i = 0; i < 14; i++) {
+    const x = baseX + 8 + i * 14;
+    if (x < baseX + baseW - 4) rect(c, x, baseY + 2, 1, baseH - 4, p.grain);
+  }
+  // Front shadow on the desk below the base
+  hline(c, baseX + 2, baseY + baseH, baseW - 4, p.deep);
+
+  // ── Two angled side supports rising from the base ──
+  // Each support is a chunky vertical pixel-art board tilted outward at top.
+  // We draw stepped rectangles for the pixel-art angle.
+  const supportH = 60;
+  const supportW = 14;
+  const innerGap = 70;   // gap between supports — phone slots in here
+  const topOutward = 8;  // top tilts outward this many px from the bottom
+
+  const drawSupport = (side: -1 | 1) => {
+    // Bottom-x of this support (anchored on base)
+    const bottomCenterX = cx + side * (innerGap / 2 + supportW / 2);
+    for (let i = 0; i < supportH; i++) {
+      const t = i / (supportH - 1);
+      // Linear lean outward as we go up.
+      const lean = Math.round(t * topOutward) * side;
+      const x = bottomCenterX - supportW / 2 + lean;
+      const y = baseY - 1 - i;
+      // Body
+      rect(c, x, y, supportW, 1, p.face);
+      // Inner edge (highlight on top-left / top-right depending on side)
+      px(c, side === 1 ? x : x + supportW - 1, y, p.hl);
+      // Outer edge (shadow)
+      px(c, side === 1 ? x + supportW - 1 : x, y, p.sh);
+      // Sparse grain
+      if (i % 6 === 2) px(c, x + Math.floor(supportW / 2), y, p.grain);
+    }
+    // Top-edge highlight stripe
+    const topY = baseY - supportH;
+    const topX = bottomCenterX - supportW / 2 + Math.round(topOutward) * side;
+    hline(c, topX, topY, supportW, p.hl);
+  };
+  drawSupport(-1);
+  drawSupport(1);
+
+  // ── Front lip — small angled block the phone bottom rests against ──
+  const lipW = innerGap + supportW;
+  const lipH = 6;
+  const lipX = cx - lipW / 2;
+  const lipY = baseY - lipH;
+  rect(c, lipX, lipY, lipW, lipH, p.face);
+  hline(c, lipX, lipY, lipW, p.hl);
+  hline(c, lipX, lipY + lipH - 1, lipW, p.sh);
+  // Subtle front bevel
+  rect(c, lipX + 4, lipY + 1, lipW - 8, 1, p.mid);
+}
+
 function drawDeskLeg(c: Ctx, baseX: number) {
   // Angled leg: top at baseX, splaying outward toward floor.
   for (let y = DESK_BOTTOM_Y; y < CH - 4; y++) {
