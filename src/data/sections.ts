@@ -256,9 +256,9 @@ that don't have to ship.`,
       rely on without knowing my name
     · contribute to 6 open-source projects
       used by thousands this summer
-    · grow into a software engineer that
-      builds tools that matter at scale
-    · build a unicorn software company
+    · grow into an engineer who consistently
+      builds low-latency tools that scale
+    · build a unicorn 
 
   music
     · finish recording a small EP
