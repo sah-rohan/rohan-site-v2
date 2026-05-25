@@ -487,7 +487,13 @@ export default function PixelDesk() {
         <SectionModal id={active} theme={theme} onClose={() => setActive(null)} />
       )}
       {/* Bottom-right control cluster: rain + theme toggles */}
-      <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5">
+      <div
+        className="absolute right-4 z-30 flex items-center gap-1.5"
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+          paddingRight: "env(safe-area-inset-right, 0px)",
+        }}
+      >
         <RainToggle raining={raining} onToggle={() => setRaining(r => !r)} />
         <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === "dark" ? "light" : "dark")} />
       </div>
