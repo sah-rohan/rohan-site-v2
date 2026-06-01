@@ -106,6 +106,11 @@ Meta Pyrefly  ·  in progress
  
 personal
 ────────────────────────────
+Grover's Algorithm SAT Solver
+  Quantum 3-SAT solver using Grover's algorithm with
+  phase-kickback oracles and amplitude amplification.
+  Python · Qiskit · Quantum Algorithms
+
 Distributed KV Store
   Fault-tolerant distributed key-value store with
   consensus and replication.
