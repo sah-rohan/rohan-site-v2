@@ -1,5 +1,8 @@
 import { Ctx, rect, hline, vline, px, stipple } from "./draw";
 import { G, W, A } from "./palette";
+import { drawScenePhoto, SceneId } from "./views";
+
+export type { SceneId };
 
 // Canvas logical size — chunky pixels, scaled up to fill viewport.
 export const CW = 640;
@@ -13,10 +16,15 @@ export const DESK_BOTTOM_Y = 300;
 
 export type Theme = "dark" | "light";
 
-export function drawWall(c: Ctx, theme: Theme = "dark") {
+export function drawWall(c: Ctx, theme: Theme = "dark", scene: SceneId = "sf") {
   // High-rise apartment: entire back wall is a floor-to-ceiling window.
-  // Same Bay Bridge composition for both themes — just recolored.
-  drawBayView(c, 0, 0, CW, DESK_TOP_Y, theme);
+  // Scene dispatch: SF uses the procedural Bay Bridge view; Tokyo and NYC
+  // composite the cached PNGs with theme-aware photographic filters.
+  if (scene === "tokyo" || scene === "nyc") {
+    drawScenePhoto(c, 0, 0, CW, DESK_TOP_Y, scene, theme);
+  } else {
+    drawBayView(c, 0, 0, CW, DESK_TOP_Y, theme);
+  }
 
   // Single uninterrupted window pane — just a slim frame at top + bottom.
   rect(c, 0, 0, CW, 3, G.ink);

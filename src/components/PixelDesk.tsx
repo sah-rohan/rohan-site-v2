@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk, drawPhoneDesk, drawPhoneStand } from "./pixel/scene";
+import { CW, CH, DESK_TOP_Y, drawWall, drawFloor, drawDesk, drawPhoneDesk, drawPhoneStand, SceneId } from "./pixel/scene";
 import {
   drawMonitor, drawTerminalBackground, drawMacBook, drawKeyboard, drawMouse,
   drawBookshelf, drawPhone, drawNotebook,
@@ -93,6 +93,7 @@ export default function PixelDesk() {
 
   // Weather — toggleable live rain in the window background.
   const [raining, setRaining] = useState(false);
+  const [scene, setScene] = useState<SceneId>("sf");
 
   const [soccerX, setSoccerX] = useState(395);
   const [soccerAngle, setSoccerAngle] = useState(0);
@@ -152,7 +153,7 @@ export default function PixelDesk() {
     if (!ctx) return;
     ctx.imageSmoothingEnabled = false;
 
-    drawWall(ctx, theme); // dark: Bay Bridge dusk; light: Golden Gate sunset
+    drawWall(ctx, theme, scene);
 
     // Phone viewport = close-up: bay bridge above + ONE continuous pixel-art
     // wood slab below, plus a pixel-art stand the phone rests on.
@@ -234,7 +235,7 @@ export default function PixelDesk() {
     // wallImageReady is intentionally a dep so the canvas redraws when the
     // SF skyline image finishes loading.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hover, screenRect, theme, wallImageReady, monitorSize, isCompact, isPhone, mounted, soccerX, soccerAngle]);
+  }, [hover, screenRect, theme, wallImageReady, monitorSize, isCompact, isPhone, mounted, soccerX, soccerAngle, scene]);
 
   // Repaint when hover changes OR sprites finish loading.
   useEffect(() => { repaint(); }, [repaint, spritesReady]);
@@ -494,9 +495,14 @@ export default function PixelDesk() {
           paddingRight: "env(safe-area-inset-right, 0px)",
         }}
       >
+        <SceneToggle scene={scene} onCycle={() => setScene(s => {
+          const order: SceneId[] = ["sf", "nyc", "tokyo"];
+          return order[(order.indexOf(s) + 1) % order.length];
+        })} />
         <RainToggle raining={raining} onToggle={() => setRaining(r => !r)} />
         <ThemeToggle theme={theme} onToggle={() => setTheme(t => t === "dark" ? "light" : "dark")} />
       </div>
+      {!isPhone && <ScenePill scene={scene} />}
     </div>
   );
 }
@@ -1053,6 +1059,104 @@ function Thunder() {
         </svg>
       )}
     </>
+  );
+}
+
+const SCENE_LABELS: Record<SceneId, string> = {
+  sf:    "SAN FRANCISCO",
+  nyc:   "NEW YORK CITY",
+  tokyo: "TOKYO",
+};
+
+function ScenePill({ scene }: { scene: SceneId }) {
+  const [time, setTime] = useState<string>("");
+  useEffect(() => {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric", minute: "2-digit", hour12: true,
+      timeZone: "America/Chicago",
+    });
+    const update = () => setTime(fmt.format(new Date()));
+    update();
+    const id = window.setInterval(update, 20_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <div
+      className="absolute z-30 pointer-events-none select-none"
+      style={{
+        top: "calc(env(safe-area-inset-top, 0px) + 14px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+      }}
+    >
+      <div
+        className="flex items-center gap-3 px-4 py-1.5 rounded-full"
+        style={{
+          background: "rgba(10,10,12,0.42)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          border: "1px solid rgba(255,255,255,0.14)",
+          boxShadow: "0 6px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.10)",
+          color: "#f5f0e8",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
+            fontSize: "10.5px",
+            letterSpacing: "0.32em",
+            fontWeight: 600,
+          }}
+        >
+          {SCENE_LABELS[scene]}
+        </span>
+        <span
+          style={{
+            width: "3px",
+            height: "3px",
+            borderRadius: "9999px",
+            background: "rgba(245,240,232,0.55)",
+          }}
+        />
+        <span
+          style={{
+            fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
+            fontSize: "10.5px",
+            letterSpacing: "0.14em",
+            fontVariantNumeric: "tabular-nums",
+            color: "rgba(245,240,232,0.85)",
+          }}
+        >
+          {time} <span style={{ opacity: 0.6 }}>CDT</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SceneToggle({ scene, onCycle }: { scene: SceneId; onCycle: () => void }) {
+  const short: Record<SceneId, string> = { sf: "SF", nyc: "NYC", tokyo: "TYO" };
+  return (
+    <button
+      onClick={onCycle}
+      aria-label={`Scene: ${SCENE_LABELS[scene]} — click to cycle`}
+      title={`View: ${SCENE_LABELS[scene]} (click to change)`}
+      className="h-10 px-2.5 flex items-center justify-center gap-1.5
+                 border border-transparent
+                 hover:border-neutral-500 hover:rounded-md hover:bg-neutral-900/40
+                 transition-all duration-150
+                 text-neutral-300 hover:text-white"
+    >
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="1" />
+        <path d="M3 15l5-5 4 4 3-3 6 6" />
+        <circle cx="16" cy="9" r="1.2" />
+      </svg>
+      <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: "10px", letterSpacing: "0.15em" }}>
+        {short[scene]}
+      </span>
+    </button>
   );
 }
 
