@@ -106,6 +106,11 @@ Meta Pyrefly  ·  in progress
  
 personal
 ────────────────────────────
+Kronos  · → usekronos.tech
+  Real-time group LeetCode tracker — season leaderboards,
+  friend feeds, streak calendars, and solution viewing.
+  React · TypeScript · Go · AWS · Postgres · Terraform
+
 Grover's Algorithm SAT Solver
   Quantum 3-SAT solver using Grover's algorithm with
   phase-kickback oracles and amplitude amplification.
