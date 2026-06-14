@@ -106,6 +106,16 @@ Meta Pyrefly  ·  in progress
  
 personal
 ────────────────────────────
+Kronos  · → usekronos.tech
+  Real-time group LeetCode tracker — season leaderboards,
+  friend feeds, streak calendars, and solution viewing.
+  React · TypeScript · Go · AWS · Postgres · Terraform
+
+Grover's Algorithm SAT Solver
+  Quantum 3-SAT solver using Grover's algorithm with
+  phase-kickback oracles and amplitude amplification.
+  Python · Qiskit · Quantum Algorithms
+
 Distributed KV Store
   Fault-tolerant distributed key-value store with
   consensus and replication.
@@ -215,7 +225,7 @@ UCSF                                      Present
 
 Indu Sah Foundation                       Present
   Founding Software Engineer (Solo)
-  🌏  Built and own the entire codebase (~13.2k lines) for a
+  🌏  Built and own the entire codebase (~16.2k lines) for a
       Nepalese-American humanitarian non-profit.
   → indusahfoundation.org
   Go · Gin · React · PostgreSQL · Redis · Terraform · Azure · Stripe
