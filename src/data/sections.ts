@@ -220,7 +220,7 @@ UCSF                                      Present
 
 Indu Sah Foundation                       Present
   Founding Software Engineer (Solo)
-  🌏  Built and own the entire codebase (~13.2k lines) for a
+  🌏  Built and own the entire codebase (~16.2k lines) for a
       Nepalese-American humanitarian non-profit.
   → indusahfoundation.org
   Go · Gin · React · PostgreSQL · Redis · Terraform · Azure · Stripe
